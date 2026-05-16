@@ -50,10 +50,10 @@ export default function InfractionsPage() {
   const { data: unit } = useQuery({
     queryKey: ['unit', condominiumId, unitId],
     queryFn: async () => {
-      const res = await api.get<ApiEnvelope<PaginatedResult<Unit>>>(
-        `/condominiums/${condominiumId}/units?page=1&limit=50`,
+      const res = await api.get<ApiEnvelope<Unit[]>>(
+        `/condominiums/${condominiumId}/units`,
       );
-      return res.data.data.data.find((u) => u.id === Number(unitId));
+      return res.data.data.find((u) => u.id === Number(unitId));
     },
   });
 

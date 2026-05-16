@@ -18,7 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { api, ApiEnvelope, PaginatedResult } from '@/lib/api';
+import { api, ApiEnvelope } from '@/lib/api';
 import { Condominium, Unit } from '@/lib/types';
 
 const unitSchema = z.object({
@@ -46,8 +46,8 @@ export default function CondominiumDetailPage() {
   const { data: units, isLoading: loadingUnits } = useQuery({
     queryKey: ['units', condominiumId],
     queryFn: async () => {
-      const res = await api.get<ApiEnvelope<PaginatedResult<Unit>>>(
-        `/condominiums/${condominiumId}/units?page=1&limit=50`,
+      const res = await api.get<ApiEnvelope<Unit[]>>(
+        `/condominiums/${condominiumId}/units`,
       );
       return res.data.data;
     },
@@ -134,7 +134,7 @@ export default function CondominiumDetailPage() {
 
         {units && (
           <>
-            {units.data.length === 0 ? (
+            {units.length === 0 ? (
               <Card>
                 <CardContent className="py-8 text-center text-slate-500">
                   Nenhuma unidade cadastrada.
@@ -142,7 +142,7 @@ export default function CondominiumDetailPage() {
               </Card>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {units.data.map((u) => (
+                {units.map((u) => (
                   <Card
                     key={u.id}
                     className="cursor-pointer hover:shadow-md transition"
@@ -160,7 +160,7 @@ export default function CondominiumDetailPage() {
                 ))}
               </div>
             )}
-            <p className="text-sm text-slate-500">Total: {units.total} unidades</p>
+            <p className="text-sm text-slate-500">Total: {units.length} unidades</p>
           </>
         )}
       </div>
