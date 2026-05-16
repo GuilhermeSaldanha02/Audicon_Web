@@ -24,6 +24,14 @@ import { Condominium, Unit } from '@/lib/types';
 const unitSchema = z.object({
   identifier: z.string().min(1, 'Identificador obrigatório'),
   ownerName: z.string().min(1, 'Nome do proprietário obrigatório'),
+  residentEmail: z
+    .string()
+    .trim()
+    .optional()
+    .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), {
+      message: 'E-mail inválido',
+    }),
+  residentPhone: z.string().trim().optional(),
 });
 
 type UnitForm = z.infer<typeof unitSchema>;
@@ -62,9 +70,15 @@ export default function CondominiumDetailPage() {
 
   const createUnit = useMutation({
     mutationFn: async (form: UnitForm) => {
+      const payload = {
+        identifier: form.identifier,
+        ownerName: form.ownerName,
+        ...(form.residentEmail ? { residentEmail: form.residentEmail } : {}),
+        ...(form.residentPhone ? { residentPhone: form.residentPhone } : {}),
+      };
       const res = await api.post<ApiEnvelope<Unit>>(
         `/condominiums/${condominiumId}/units`,
-        form,
+        payload,
       );
       return res.data.data;
     },
@@ -122,6 +136,27 @@ export default function CondominiumDetailPage() {
                     <p className="text-sm text-red-600">{errors.ownerName.message}</p>
                   )}
                 </div>
+                <div className="space-y-1">
+                  <Label>E-mail do morador (opcional)</Label>
+                  <Input
+                    type="email"
+                    placeholder="morador@exemplo.com"
+                    {...register('residentEmail')}
+                  />
+                  {errors.residentEmail && (
+                    <p className="text-sm text-red-600">{errors.residentEmail.message}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <Label>WhatsApp do morador (opcional)</Label>
+                  <Input
+                    placeholder="+5511999998888"
+                    {...register('residentPhone')}
+                  />
+                  {errors.residentPhone && (
+                    <p className="text-sm text-red-600">{errors.residentPhone.message}</p>
+                  )}
+                </div>
                 <Button type="submit" className="w-full" disabled={createUnit.isPending}>
                   {createUnit.isPending ? 'Criando...' : 'Criar'}
                 </Button>
@@ -153,8 +188,14 @@ export default function CondominiumDetailPage() {
                     <CardHeader className="pb-2">
                       <CardTitle className="text-lg">{u.identifier}</CardTitle>
                     </CardHeader>
-                    <CardContent className="text-sm text-slate-600">
-                      <p>{u.ownerName}</p>
+                    <CardContent className="text-sm text-slate-600 space-y-1">
+                      <p className="font-medium">{u.ownerName}</p>
+                      {u.residentEmail && (
+                        <p className="text-xs text-slate-500">📧 {u.residentEmail}</p>
+                      )}
+                      {u.residentPhone && (
+                        <p className="text-xs text-slate-500">📱 {u.residentPhone}</p>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
