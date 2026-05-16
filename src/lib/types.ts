@@ -24,6 +24,8 @@ export type Unit = {
   id: number;
   identifier: string;
   ownerName: string;
+  residentEmail?: string | null;
+  residentPhone?: string | null;
 };
 
 export type InfractionStatus = 'pending' | 'analyzed' | 'sent';
