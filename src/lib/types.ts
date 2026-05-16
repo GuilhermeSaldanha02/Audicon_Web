@@ -1,6 +1,6 @@
 export type LoginRequest = {
   email: string;
-  senha: string;
+  password: string;
 };
 
 export type LoginResponse = {

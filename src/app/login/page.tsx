@@ -15,8 +15,8 @@ import { authStorage } from '@/lib/auth';
 import { LoginRequest, LoginResponse } from '@/lib/types';
 
 const loginSchema = z.object({
-  email: z.string().email('E-mail inválido'),
-  senha: z.string().min(6, 'Mínimo 6 caracteres'),
+  email: z.email('E-mail inválido'),
+  password: z.string().min(6, 'Mínimo 6 caracteres'),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -63,9 +63,9 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="senha">Senha</Label>
-              <Input id="senha" type="password" {...register('senha')} />
-              {errors.senha && <p className="text-sm text-red-600">{errors.senha.message}</p>}
+              <Label htmlFor="password">Senha</Label>
+              <Input id="password" type="password" {...register('password')} />
+              {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
             </div>
 
             <Button type="submit" className="w-full" disabled={mutation.isPending}>
