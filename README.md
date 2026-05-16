@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Audicon Frontend
 
-## Getting Started
+Frontend Next.js 15 + TypeScript + Tailwind 4 + shadcn/ui para o sistema Audicon de gestão de infrações em condomínios.
 
-First, run the development server:
+Backend: [Audicon_BackEnd](https://github.com/GuilhermeSaldanha02/Audicon_BackEnd)
+
+## Stack
+
+- **Next.js 15** (App Router) + **React 19**
+- **TypeScript**
+- **Tailwind CSS 4** + **shadcn/ui** (componentes acessíveis)
+- **TanStack Query** + **axios** (fetch e cache)
+- **react-hook-form** + **zod** (formulários e validação)
+- **sonner** (toasts)
+
+## Setup
 
 ```bash
+cp .env.example .env.local
+# editar NEXT_PUBLIC_API_URL conforme o backend rodando
+
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+App em [http://localhost:3001](http://localhost:3001) (ou outra porta se 3000 estiver ocupado pelo backend).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Estrutura
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/                 # App Router (rotas)
+│   ├── login/           # Página de login
+│   ├── condominiums/    # Lista de condomínios do usuário
+│   ├── layout.tsx       # Layout raiz com providers e toaster
+│   └── page.tsx         # Redireciona para /login
+├── components/
+│   ├── ui/              # Componentes shadcn (button, input, card, etc.)
+│   └── providers.tsx    # QueryClientProvider
+└── lib/
+    ├── api.ts           # Cliente axios + interceptor JWT
+    ├── auth.ts          # Helpers de token (localStorage)
+    ├── query-client.ts  # Configuração TanStack Query
+    └── types.ts         # Tipos compartilhados com a API
+```
 
-## Learn More
+## Autenticação
 
-To learn more about Next.js, take a look at the following resources:
+JWT é armazenado em `localStorage` (`audicon_token`) e enviado via interceptor axios em todo request. Resposta 401 limpa o token e redireciona para `/login`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Variáveis de ambiente
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Variável | Descrição |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | URL base do backend (ex.: `http://localhost:3000`) |
 
-## Deploy on Vercel
+## Próximos passos
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Ver backlog completo no `CLAUDE.md` do backend. Funcionalidades a integrar conforme backend evolui:
+- Upload de imagens da infração
+- Fluxo de aprovação
+- Notificações (e-mail, WhatsApp)
+- Multi-tenant (Empresa)
