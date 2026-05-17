@@ -30,7 +30,7 @@ export type Unit = {
   residentPhone?: string | null;
 };
 
-export type InfractionStatus = 'pending' | 'analyzed' | 'sent';
+export type InfractionStatus = 'pending' | 'analyzed' | 'approved' | 'sent';
 
 export type Infraction = {
   id: number;
@@ -39,5 +39,6 @@ export type Infraction = {
   suggestedPenalty?: string;
   status: InfractionStatus;
   occurrenceDate: string;
+  approvedAt?: string | null;
   unit?: Unit;
 };

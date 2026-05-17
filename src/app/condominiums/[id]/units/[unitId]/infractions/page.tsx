@@ -24,14 +24,20 @@ import { Infraction, Unit, InfractionStatus } from '@/lib/types';
 const statusLabel: Record<InfractionStatus, string> = {
   pending: 'Pendente',
   analyzed: 'Analisado',
+  approved: 'Aprovado',
   sent: 'Enviado',
 };
 
 const statusColor: Record<InfractionStatus, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
   analyzed: 'bg-blue-100 text-blue-800',
+  approved: 'bg-purple-100 text-purple-800',
   sent: 'bg-green-100 text-green-800',
 };
+
+function ordinal(n: number): string {
+  return `${n}ª`;
+}
 
 const infractionSchema = z.object({
   description: z.string().min(10, 'Descreva a infração com pelo menos 10 caracteres'),
@@ -154,33 +160,49 @@ export default function InfractionsPage() {
               </Card>
             ) : (
               <div className="space-y-3">
-                {infractions.data.map((inf) => (
-                  <Card
-                    key={inf.id}
-                    className="cursor-pointer hover:shadow-md transition"
-                    onClick={() =>
-                      router.push(
-                        `/condominiums/${condominiumId}/units/${unitId}/infractions/${inf.id}`,
-                      )
-                    }
-                  >
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-base">{inf.description}</CardTitle>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColor[inf.status]}`}
-                        >
-                          {statusLabel[inf.status]}
-                        </span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="text-sm text-slate-500">
-                      {inf.occurrenceDate
-                        ? new Date(inf.occurrenceDate).toLocaleDateString('pt-BR')
-                        : '—'}
-                    </CardContent>
-                  </Card>
-                ))}
+                {infractions.data.map((inf) => {
+                  const reincidencia =
+                    infractions.total -
+                    infractions.data.findIndex((i) => i.id === inf.id);
+                  return (
+                    <Card
+                      key={inf.id}
+                      className="cursor-pointer hover:shadow-md transition"
+                      onClick={() =>
+                        router.push(
+                          `/condominiums/${condominiumId}/units/${unitId}/infractions/${inf.id}`,
+                        )
+                      }
+                    >
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <CardTitle className="text-base">
+                            {inf.description}
+                          </CardTitle>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {reincidencia > 1 && (
+                              <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800">
+                                {ordinal(reincidencia)} ocorrência
+                              </span>
+                            )}
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColor[inf.status]}`}
+                            >
+                              {statusLabel[inf.status]}
+                            </span>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="text-sm text-slate-500">
+                        {inf.occurrenceDate
+                          ? new Date(inf.occurrenceDate).toLocaleDateString(
+                              'pt-BR',
+                            )
+                          : '—'}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
             <p className="text-sm text-slate-500">Total: {infractions.total} infração(ões)</p>
