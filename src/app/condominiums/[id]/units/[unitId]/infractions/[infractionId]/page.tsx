@@ -39,6 +39,7 @@ export default function InfractionDetailPage() {
   const infractionId = params.infractionId as string;
   const queryClient = useQueryClient();
   const [approveOpen, setApproveOpen] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
 
   const { data: infraction, isLoading } = useQuery({
     queryKey: ['infraction', infractionId],
@@ -78,6 +79,22 @@ export default function InfractionDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['infractions', unitId] });
     },
     onError: () => toast.error('Erro ao aprovar infração'),
+  });
+
+  const sendMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.post<ApiEnvelope<Infraction>>(
+        `/infractions/${infractionId}/send`,
+      );
+      return res.data.data;
+    },
+    onSuccess: () => {
+      toast.success('E-mail enviado ao morador');
+      setSendOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['infraction', infractionId] });
+      queryClient.invalidateQueries({ queryKey: ['infractions', unitId] });
+    },
+    onError: () => toast.error('Erro ao enviar e-mail'),
   });
 
   async function downloadPdf() {
@@ -192,6 +209,22 @@ export default function InfractionDetailPage() {
                     </p>
                   </div>
                 )}
+                {infraction.sentAt && (
+                  <div>
+                    <p className="text-sm font-medium text-slate-500 mb-1">
+                      Enviada em
+                    </p>
+                    <p className="text-slate-700">
+                      {new Date(infraction.sentAt).toLocaleString('pt-BR')}
+                      {infraction.unit?.residentEmail && (
+                        <span className="text-slate-500">
+                          {' '}
+                          → {infraction.unit.residentEmail}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -239,6 +272,56 @@ export default function InfractionDetailPage() {
               </DialogContent>
             </Dialog>
           )}
+
+          {infraction.status === 'approved' &&
+            (infraction.unit?.residentEmail ? (
+              <Dialog open={sendOpen} onOpenChange={setSendOpen}>
+                <DialogTrigger render={<Button />}>
+                  📧 Enviar por e-mail
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Confirmar envio</DialogTitle>
+                  </DialogHeader>
+                  <p className="text-sm text-slate-600">
+                    O documento será enviado por e-mail para:
+                  </p>
+                  <p className="rounded bg-slate-100 px-3 py-2 font-mono text-sm">
+                    {infraction.unit.residentEmail}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Esta ação não pode ser desfeita.
+                  </p>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setSendOpen(false)}
+                      disabled={sendMutation.isPending}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={() => sendMutation.mutate()}
+                      disabled={sendMutation.isPending}
+                    >
+                      {sendMutation.isPending
+                        ? 'Enviando...'
+                        : 'Confirmar envio'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" disabled>
+                  📧 Enviar por e-mail
+                </Button>
+                <span className="text-xs text-amber-700">
+                  Cadastre o e-mail do morador na unidade para habilitar o
+                  envio.
+                </span>
+              </div>
+            ))}
 
           {(infraction.status === 'analyzed' ||
             infraction.status === 'approved' ||

@@ -40,5 +40,6 @@ export type Infraction = {
   status: InfractionStatus;
   occurrenceDate: string;
   approvedAt?: string | null;
+  sentAt?: string | null;
   unit?: Unit;
 };
