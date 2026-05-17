@@ -6,10 +6,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { api, ApiEnvelope } from '@/lib/api';
 import { authStorage } from '@/lib/auth';
 import { LoginRequest, LoginResponse } from '@/lib/types';
@@ -50,8 +51,15 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl">Audicon</CardTitle>
+        <CardHeader className="items-center text-center">
+          <Image
+            src="/logo.png"
+            alt="Audicon Condomínios"
+            width={220}
+            height={80}
+            priority
+            className="mb-2 h-auto w-[220px]"
+          />
           <CardDescription>Entre com seu e-mail e senha</CardDescription>
         </CardHeader>
         <CardContent>

@@ -21,6 +21,7 @@ import {
 import { api, ApiEnvelope, PaginatedResult } from '@/lib/api';
 import { authStorage } from '@/lib/auth';
 import { Condominium } from '@/lib/types';
+import { BrandHeader } from '@/components/brand-header';
 
 const createSchema = z.object({
   name: z.string().min(1, 'Nome obrigatório'),
@@ -78,6 +79,7 @@ export default function CondominiumsPage() {
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="mx-auto max-w-5xl space-y-6">
+        <BrandHeader />
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Meus condomínios</h1>
           <div className="flex gap-2">

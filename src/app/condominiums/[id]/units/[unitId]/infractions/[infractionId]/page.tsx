@@ -2,9 +2,17 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { api, ApiEnvelope } from '@/lib/api';
 import { authStorage } from '@/lib/auth';
 import { Infraction, InfractionStatus } from '@/lib/types';
@@ -12,12 +20,14 @@ import { Infraction, InfractionStatus } from '@/lib/types';
 const statusLabel: Record<InfractionStatus, string> = {
   pending: 'Pendente',
   analyzed: 'Analisado',
+  approved: 'Aprovado',
   sent: 'Enviado',
 };
 
 const statusColor: Record<InfractionStatus, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
   analyzed: 'bg-blue-100 text-blue-800',
+  approved: 'bg-purple-100 text-purple-800',
   sent: 'bg-green-100 text-green-800',
 };
 
@@ -28,6 +38,7 @@ export default function InfractionDetailPage() {
   const unitId = params.unitId as string;
   const infractionId = params.infractionId as string;
   const queryClient = useQueryClient();
+  const [approveOpen, setApproveOpen] = useState(false);
 
   const { data: infraction, isLoading } = useQuery({
     queryKey: ['infraction', infractionId],
@@ -50,6 +61,23 @@ export default function InfractionDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['infractions', unitId] });
     },
     onError: () => toast.error('Erro ao analisar infração'),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.patch<ApiEnvelope<Infraction>>(
+        `/infractions/${infractionId}/approve`,
+        {},
+      );
+      return res.data.data;
+    },
+    onSuccess: () => {
+      toast.success('Infração aprovada');
+      setApproveOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['infraction', infractionId] });
+      queryClient.invalidateQueries({ queryKey: ['infractions', unitId] });
+    },
+    onError: () => toast.error('Erro ao aprovar infração'),
   });
 
   async function downloadPdf() {
@@ -127,43 +155,94 @@ export default function InfractionDetailPage() {
           </CardContent>
         </Card>
 
-        {infraction.status === 'analyzed' && infraction.formalDescription && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Análise da IA</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-slate-500 mb-1">
-                  Descrição formal
-                </p>
-                <p className="whitespace-pre-wrap text-slate-700">
-                  {infraction.formalDescription}
-                </p>
-              </div>
-              {infraction.suggestedPenalty && (
+        {(infraction.status === 'analyzed' ||
+          infraction.status === 'approved' ||
+          infraction.status === 'sent') &&
+          infraction.formalDescription && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Análise da IA</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
                   <p className="text-sm font-medium text-slate-500 mb-1">
-                    Penalidade sugerida
+                    Descrição formal
                   </p>
-                  <p className="text-slate-700">{infraction.suggestedPenalty}</p>
+                  <p className="whitespace-pre-wrap text-slate-700">
+                    {infraction.formalDescription}
+                  </p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+                {infraction.suggestedPenalty && (
+                  <div>
+                    <p className="text-sm font-medium text-slate-500 mb-1">
+                      Penalidade sugerida
+                    </p>
+                    <p className="text-slate-700">
+                      {infraction.suggestedPenalty}
+                    </p>
+                  </div>
+                )}
+                {infraction.approvedAt && (
+                  <div>
+                    <p className="text-sm font-medium text-slate-500 mb-1">
+                      Aprovada em
+                    </p>
+                    <p className="text-slate-700">
+                      {new Date(infraction.approvedAt).toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           {infraction.status === 'pending' && (
             <Button
               onClick={() => analyzeMutation.mutate()}
               disabled={analyzeMutation.isPending}
             >
-              {analyzeMutation.isPending ? 'Analisando...' : '🤖 Analisar via IA'}
+              {analyzeMutation.isPending
+                ? 'Analisando...'
+                : '🤖 Analisar via IA'}
             </Button>
           )}
 
           {infraction.status === 'analyzed' && (
+            <Dialog open={approveOpen} onOpenChange={setApproveOpen}>
+              <DialogTrigger render={<Button />}>✅ Aprovar</DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Confirmar aprovação</DialogTitle>
+                </DialogHeader>
+                <p className="text-sm text-slate-600">
+                  Ao aprovar, a infração ficará pronta para envio ao morador.
+                  Esta ação não pode ser desfeita.
+                </p>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setApproveOpen(false)}
+                    disabled={approveMutation.isPending}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={() => approveMutation.mutate()}
+                    disabled={approveMutation.isPending}
+                  >
+                    {approveMutation.isPending
+                      ? 'Aprovando...'
+                      : 'Confirmar aprovação'}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+
+          {(infraction.status === 'analyzed' ||
+            infraction.status === 'approved' ||
+            infraction.status === 'sent') && (
             <Button onClick={downloadPdf} variant="outline">
               📄 Baixar PDF
             </Button>
