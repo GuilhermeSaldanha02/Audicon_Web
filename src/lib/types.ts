@@ -18,6 +18,8 @@ export type Condominium = {
   name: string;
   cnpj: string;
   address: string;
+  regimentoFilename?: string | null;
+  regimentoUploadedAt?: string | null;
 };
 
 export type Unit = {

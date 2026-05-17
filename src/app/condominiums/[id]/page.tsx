@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -91,6 +91,57 @@ export default function CondominiumDetailPage() {
     onError: () => toast.error('Erro ao criar unidade'),
   });
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadRegimento = useMutation({
+    mutationFn: async (file: File) => {
+      const form = new FormData();
+      form.append('file', file);
+      await api.post(`/condominiums/${condominiumId}/regimento`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    },
+    onSuccess: () => {
+      toast.success('Regimento enviado com sucesso');
+      queryClient.invalidateQueries({ queryKey: ['condominium', condominiumId] });
+    },
+    onError: () => toast.error('Erro ao enviar regimento'),
+  });
+
+  const deleteRegimento = useMutation({
+    mutationFn: async () => {
+      await api.delete(`/condominiums/${condominiumId}/regimento`);
+    },
+    onSuccess: () => {
+      toast.success('Regimento removido');
+      queryClient.invalidateQueries({ queryKey: ['condominium', condominiumId] });
+    },
+    onError: () => toast.error('Erro ao remover regimento'),
+  });
+
+  async function downloadRegimento() {
+    const res = await api.get(`/condominiums/${condominiumId}/regimento`, {
+      responseType: 'blob',
+    });
+    const url = URL.createObjectURL(res.data as Blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = condominium?.regimentoFilename ?? 'regimento.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      toast.error('Apenas arquivos PDF são aceitos');
+      return;
+    }
+    uploadRegimento.mutate(file);
+    e.target.value = '';
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="mx-auto max-w-5xl space-y-6">
@@ -109,6 +160,63 @@ export default function CondominiumDetailPage() {
             </div>
           )}
         </div>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Regimento Interno</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {condominium?.regimentoFilename ? (
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-slate-700 flex-1">
+                  📄 {condominium.regimentoFilename}
+                  {condominium.regimentoUploadedAt && (
+                    <span className="ml-2 text-xs text-slate-400">
+                      (enviado em{' '}
+                      {new Date(condominium.regimentoUploadedAt).toLocaleDateString('pt-BR')})
+                    </span>
+                  )}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={downloadRegimento}
+                >
+                  Baixar PDF
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={deleteRegimento.isPending}
+                  onClick={() => deleteRegimento.mutate()}
+                >
+                  Remover
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <p className="text-sm text-slate-500 flex-1">
+                  Nenhum regimento cadastrado. A IA usará análise genérica.
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={uploadRegimento.isPending}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {uploadRegimento.isPending ? 'Enviando...' : 'Enviar PDF'}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Unidades</h2>
