@@ -102,6 +102,14 @@ export type Unit = {
 
 export type InfractionStatus = 'pending' | 'analyzed' | 'approved' | 'sent';
 
+export type DashboardResult = {
+  totalInfractions: number;
+  byStatus: Record<InfractionStatus, number>;
+  byMonth: { month: string; count: number }[];
+  topUnits: { unitId: number; identifier: string; condominiumName: string; count: number }[];
+  approvalRate: number;
+};
+
 export type Infraction = {
   id: number;
   description: string;
