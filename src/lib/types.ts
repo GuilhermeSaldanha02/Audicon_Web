@@ -41,6 +41,24 @@ export type CreateCompanyRequest = {
   };
 };
 
+export type Employee = {
+  id: number;
+  nome: string;
+  email: string;
+};
+
+export type CreatedEmployeeResult = {
+  id: number;
+  nome: string;
+  email: string;
+  tempPassword: string;
+};
+
+export type CreateEmployeeRequest = {
+  nome: string;
+  email: string;
+};
+
 export type Condominium = {
   id: number;
   name: string;
