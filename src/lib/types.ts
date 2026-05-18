@@ -59,6 +59,30 @@ export type CreateEmployeeRequest = {
   email: string;
 };
 
+export type AuditAction =
+  | 'INFRACTION_CREATED'
+  | 'INFRACTION_APPROVED'
+  | 'INFRACTION_SENT'
+  | 'INFRACTION_WHATSAPP_SENT'
+  | 'INFRACTION_DELETED'
+  | 'CONDOMINIUM_CREATED'
+  | 'CONDOMINIUM_DELETED'
+  | 'COMPANY_CREATED'
+  | 'EMPLOYEE_CREATED';
+
+export type AuditLogEntry = {
+  id: number;
+  createdAt: string;
+  userId: number | null;
+  userEmail: string | null;
+  userIsMaster: boolean;
+  companyId: number | null;
+  action: AuditAction;
+  entity: string;
+  entityId: number | null;
+  context: Record<string, unknown> | null;
+};
+
 export type Condominium = {
   id: number;
   name: string;

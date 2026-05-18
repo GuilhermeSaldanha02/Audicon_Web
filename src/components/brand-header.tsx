@@ -46,6 +46,14 @@ export function BrandHeader({ children }: { children?: React.ReactNode }) {
             👥 Funcionários
           </Link>
         )}
+        {(isMaster || hasCompany) && (
+          <Link
+            href="/audit-log"
+            className="text-sm font-medium text-slate-700 hover:text-slate-900"
+          >
+            📜 Auditoria
+          </Link>
+        )}
       </div>
       {children && <div className="flex items-center gap-3">{children}</div>}
     </div>
