@@ -16,6 +16,7 @@ import {
 import { api, ApiEnvelope } from '@/lib/api';
 import { authStorage } from '@/lib/auth';
 import { Infraction, InfractionStatus } from '@/lib/types';
+import { InfractionImages } from '@/components/infraction-images';
 
 const statusLabel: Record<InfractionStatus, string> = {
   pending: 'Pendente',
@@ -171,6 +172,8 @@ export default function InfractionDetailPage() {
             )}
           </CardContent>
         </Card>
+
+        <InfractionImages infractionId={infractionId} />
 
         {(infraction.status === 'analyzed' ||
           infraction.status === 'approved' ||
