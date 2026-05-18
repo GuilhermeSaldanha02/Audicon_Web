@@ -19,6 +19,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { api, ApiEnvelope, PaginatedResult } from '@/lib/api';
+import { authStorage } from '@/lib/auth';
 import { Infraction, Unit, InfractionStatus } from '@/lib/types';
 
 const statusLabel: Record<InfractionStatus, string> = {
@@ -52,6 +53,31 @@ export default function InfractionsPage() {
   const unitId = params.unitId as string;
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExportCsv() {
+    setExporting(true);
+    try {
+      const token = authStorage.get();
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
+      const res = await fetch(
+        `${baseUrl}/infractions/export?unitId=${unitId}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!res.ok) throw new Error('Falha ao exportar');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `infractions-unit-${unitId}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Erro ao exportar CSV');
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const { data: unit } = useQuery({
     queryKey: ['unit', condominiumId, unitId],
@@ -119,8 +145,16 @@ export default function InfractionsPage() {
 
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Ocorrências</h2>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger render={<Button />}>+ Nova infração</DialogTrigger>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleExportCsv}
+              disabled={exporting}
+            >
+              {exporting ? 'Exportando...' : 'Exportar CSV'}
+            </Button>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger render={<Button />}>+ Nova infração</DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Registrar infração</DialogTitle>
@@ -145,7 +179,8 @@ export default function InfractionsPage() {
                 </Button>
               </form>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
 
         {isLoading && <p className="text-slate-600">Carregando...</p>}
