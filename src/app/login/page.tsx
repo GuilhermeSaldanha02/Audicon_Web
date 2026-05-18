@@ -41,7 +41,8 @@ export default function LoginPage() {
     onSuccess: (data) => {
       authStorage.set(data.access_token);
       toast.success('Login realizado');
-      router.push('/condominiums');
+      const claims = authStorage.getClaims();
+      router.push(claims?.isMaster ? '/master/companies' : '/condominiums');
     },
     onError: () => {
       toast.error('Credenciais inválidas');

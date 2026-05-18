@@ -11,6 +11,34 @@ export type User = {
   id: number;
   nome: string;
   email: string;
+  isMaster?: boolean;
+  companyId?: number | null;
+};
+
+export type Company = {
+  id: number;
+  name: string;
+  cnpj: string;
+  createdAt: string;
+};
+
+export type CreatedCompanyResult = {
+  company: Company;
+  admin: {
+    id: number;
+    email: string;
+    nome: string;
+    tempPassword: string;
+  };
+};
+
+export type CreateCompanyRequest = {
+  name: string;
+  cnpj: string;
+  admin: {
+    nome: string;
+    email: string;
+  };
 };
 
 export type Condominium = {
