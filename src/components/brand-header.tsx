@@ -7,8 +7,11 @@ import { authStorage } from '@/lib/auth';
 
 export function BrandHeader({ children }: { children?: React.ReactNode }) {
   const [isMaster, setIsMaster] = useState(false);
+  const [hasCompany, setHasCompany] = useState(false);
   useEffect(() => {
-    setIsMaster(!!authStorage.getClaims()?.isMaster);
+    const claims = authStorage.getClaims();
+    setIsMaster(!!claims?.isMaster);
+    setHasCompany(!claims?.isMaster && !!claims?.companyId);
   }, []);
 
   return (
@@ -33,6 +36,14 @@ export function BrandHeader({ children }: { children?: React.ReactNode }) {
             className="text-sm font-medium text-slate-700 hover:text-slate-900"
           >
             🏢 Empresas
+          </Link>
+        )}
+        {hasCompany && (
+          <Link
+            href="/company/employees"
+            className="text-sm font-medium text-slate-700 hover:text-slate-900"
+          >
+            👥 Funcionários
           </Link>
         )}
       </div>
