@@ -48,6 +48,14 @@ export function BrandHeader({ children }: { children?: React.ReactNode }) {
         )}
         {(isMaster || hasCompany) && (
           <Link
+            href="/dashboard"
+            className="text-sm font-medium text-slate-700 hover:text-slate-900"
+          >
+            📊 Dashboard
+          </Link>
+        )}
+        {(isMaster || hasCompany) && (
+          <Link
             href="/audit-log"
             className="text-sm font-medium text-slate-700 hover:text-slate-900"
           >
