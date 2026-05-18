@@ -41,5 +41,6 @@ export type Infraction = {
   occurrenceDate: string;
   approvedAt?: string | null;
   sentAt?: string | null;
+  whatsappSentAt?: string | null;
   unit?: Unit;
 };

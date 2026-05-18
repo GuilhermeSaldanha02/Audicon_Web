@@ -41,6 +41,7 @@ export default function InfractionDetailPage() {
   const queryClient = useQueryClient();
   const [approveOpen, setApproveOpen] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
+  const [whatsappOpen, setWhatsappOpen] = useState(false);
 
   const { data: infraction, isLoading } = useQuery({
     queryKey: ['infraction', infractionId],
@@ -96,6 +97,22 @@ export default function InfractionDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['infractions', unitId] });
     },
     onError: () => toast.error('Erro ao enviar e-mail'),
+  });
+
+  const whatsappMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.post<ApiEnvelope<Infraction>>(
+        `/infractions/${infractionId}/send-whatsapp`,
+      );
+      return res.data.data;
+    },
+    onSuccess: () => {
+      toast.success('Alerta enviado por WhatsApp');
+      setWhatsappOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['infraction', infractionId] });
+      queryClient.invalidateQueries({ queryKey: ['infractions', unitId] });
+    },
+    onError: () => toast.error('Erro ao enviar WhatsApp'),
   });
 
   async function downloadPdf() {
@@ -228,6 +245,24 @@ export default function InfractionDetailPage() {
                     </p>
                   </div>
                 )}
+                {infraction.whatsappSentAt && (
+                  <div>
+                    <p className="text-sm font-medium text-slate-500 mb-1">
+                      WhatsApp enviado em
+                    </p>
+                    <p className="text-slate-700">
+                      {new Date(infraction.whatsappSentAt).toLocaleString(
+                        'pt-BR',
+                      )}
+                      {infraction.unit?.residentPhone && (
+                        <span className="text-slate-500">
+                          {' '}
+                          → {infraction.unit.residentPhone}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -322,6 +357,57 @@ export default function InfractionDetailPage() {
                 <span className="text-xs text-amber-700">
                   Cadastre o e-mail do morador na unidade para habilitar o
                   envio.
+                </span>
+              </div>
+            ))}
+
+          {(infraction.status === 'approved' ||
+            infraction.status === 'sent') &&
+            (infraction.unit?.residentPhone ? (
+              <Dialog open={whatsappOpen} onOpenChange={setWhatsappOpen}>
+                <DialogTrigger render={<Button variant="outline" />}>
+                  📱 Enviar WhatsApp
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Enviar alerta por WhatsApp</DialogTitle>
+                  </DialogHeader>
+                  <p className="text-sm text-slate-600">
+                    Um alerta será enviado para o WhatsApp:
+                  </p>
+                  <p className="rounded bg-slate-100 px-3 py-2 font-mono text-sm">
+                    {infraction.unit.residentPhone}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    O documento completo já foi (ou será) enviado por e-mail. O
+                    WhatsApp é apenas um aviso curto.
+                  </p>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setWhatsappOpen(false)}
+                      disabled={whatsappMutation.isPending}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={() => whatsappMutation.mutate()}
+                      disabled={whatsappMutation.isPending}
+                    >
+                      {whatsappMutation.isPending
+                        ? 'Enviando...'
+                        : 'Confirmar envio'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" disabled>
+                  📱 Enviar WhatsApp
+                </Button>
+                <span className="text-xs text-amber-700">
+                  Cadastre o telefone do morador na unidade.
                 </span>
               </div>
             ))}
