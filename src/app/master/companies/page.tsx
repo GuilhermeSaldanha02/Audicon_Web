@@ -203,7 +203,11 @@ export default function MasterCompaniesPage() {
         {data && data.length > 0 && (
           <div className="space-y-3">
             {data.map((company) => (
-              <Card key={company.id}>
+              <Card
+                key={company.id}
+                className="cursor-pointer transition hover:shadow-md"
+                onClick={() => router.push(`/master/companies/${company.id}`)}
+              >
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">{company.name}</CardTitle>
                 </CardHeader>
@@ -212,6 +216,9 @@ export default function MasterCompaniesPage() {
                   <p>
                     Criada em{' '}
                     {new Date(company.createdAt).toLocaleDateString('pt-BR')}
+                  </p>
+                  <p className="mt-2 text-xs text-blue-600">
+                    Clique para gerenciar usuários →
                   </p>
                 </CardContent>
               </Card>
