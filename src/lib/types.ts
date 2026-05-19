@@ -102,6 +102,26 @@ export type Unit = {
 
 export type InfractionStatus = 'pending' | 'analyzed' | 'approved' | 'sent';
 
+export type NotificationChannel = 'email' | 'whatsapp';
+export type NotificationStatus =
+  | 'sent'
+  | 'delivered'
+  | 'opened'
+  | 'clicked'
+  | 'bounced'
+  | 'failed';
+
+export type Notification = {
+  id: number;
+  channel: NotificationChannel;
+  recipient: string;
+  providerId?: string | null;
+  status: NotificationStatus;
+  failureReason?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type DashboardResult = {
   totalInfractions: number;
   byStatus: Record<InfractionStatus, number>;

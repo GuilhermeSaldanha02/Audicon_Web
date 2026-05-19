@@ -17,6 +17,7 @@ import { api, ApiEnvelope } from '@/lib/api';
 import { authStorage } from '@/lib/auth';
 import { Infraction, InfractionStatus } from '@/lib/types';
 import { InfractionImages } from '@/components/infraction-images';
+import { NotificationHistory } from '@/components/notification-history';
 
 const statusLabel: Record<InfractionStatus, string> = {
   pending: 'Pendente',
@@ -420,6 +421,8 @@ export default function InfractionDetailPage() {
             </Button>
           )}
         </div>
+
+        <NotificationHistory infractionId={Number(infractionId)} />
       </div>
     </div>
   );
