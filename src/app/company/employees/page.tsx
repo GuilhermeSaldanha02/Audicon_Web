@@ -52,7 +52,7 @@ export default function EmployeesPage() {
 
   useEffect(() => {
     if ((error as { response?: { status?: number } })?.response?.status === 403) {
-      toast.error('Apenas usuários ADMIN de pelo menos um condomínio podem gerenciar funcionários.');
+      toast.error('Você não tem permissão para gerenciar funcionários.');
       router.replace('/condominiums');
     }
   }, [error, router]);

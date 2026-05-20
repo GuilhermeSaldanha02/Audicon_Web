@@ -19,6 +19,7 @@ const ACTION_LABEL: Record<AuditAction, string> = {
   CONDOMINIUM_CREATED: 'Condomínio criado',
   CONDOMINIUM_DELETED: 'Condomínio removido',
   COMPANY_CREATED: 'Empresa criada',
+  COMPANY_DELETED: 'Empresa removida',
   EMPLOYEE_CREATED: 'Funcionário criado',
   EMPLOYEE_PASSWORD_RESET: 'Senha resetada',
 };
@@ -32,6 +33,7 @@ const ACTION_BADGE: Record<AuditAction, string> = {
   CONDOMINIUM_CREATED:     'bg-cyan-100 text-cyan-800',
   CONDOMINIUM_DELETED:     'bg-red-100 text-red-800',
   COMPANY_CREATED:         'bg-amber-100 text-amber-800',
+  COMPANY_DELETED:         'bg-red-100 text-red-800',
   EMPLOYEE_CREATED:        'bg-orange-100 text-orange-800',
   EMPLOYEE_PASSWORD_RESET: 'bg-slate-100 text-slate-800',
 };

@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Building2, Hash, Calendar, Users,
-  Mail, RotateCcw, AlertCircle, Copy, Plus,
+  Mail, RotateCcw, AlertCircle, Copy, Plus, Trash2, AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +33,7 @@ export default function MasterCompanyDetailPage() {
   const queryClient = useQueryClient();
   const [resetTarget, setResetTarget] = useState<Employee | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [successResult, setSuccessResult] = useState<
     (CreatedEmployeeResult & { nome: string; title: string }) | null
   >(null);
@@ -80,6 +81,21 @@ export default function MasterCompanyDetailPage() {
     onError: (err: unknown) => {
       const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao criar usuário';
       toast.error(typeof msg === 'string' ? msg : 'Erro ao criar usuário');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await api.delete(`/companies/${companyId}`);
+    },
+    onSuccess: () => {
+      toast.success('Empresa excluída');
+      queryClient.invalidateQueries({ queryKey: ['master-companies'] });
+      router.push('/master/companies');
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao excluir empresa';
+      toast.error(typeof msg === 'string' ? msg : 'Erro ao excluir empresa');
     },
   });
 
@@ -147,6 +163,15 @@ export default function MasterCompanyDetailPage() {
               </div>
             )}
           </div>
+          {company && (
+            <Button
+              variant="outline" size="sm"
+              onClick={() => setDeleteOpen(true)}
+              className="gap-1.5 cursor-pointer text-destructive hover:bg-destructive/10 hover:text-destructive mt-1 shrink-0"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Excluir empresa
+            </Button>
+          )}
         </div>
 
         {/* Users */}
@@ -311,6 +336,43 @@ export default function MasterCompanyDetailPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete company confirmation */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Excluir empresa</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+              <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-destructive">Esta ação é irreversível</p>
+                <p className="text-sm text-muted-foreground">
+                  A empresa <strong>{company?.name}</strong> e todos os seus usuários serão removidos.
+                  Empresas com condomínios ativos não podem ser excluídas — remova os condomínios primeiro.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteOpen(false)}
+                disabled={deleteMutation.isPending}
+                className="cursor-pointer"
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => deleteMutation.mutate()}
+                disabled={deleteMutation.isPending}
+                className="cursor-pointer"
+              >
+                {deleteMutation.isPending ? 'Excluindo...' : 'Confirmar exclusão'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
