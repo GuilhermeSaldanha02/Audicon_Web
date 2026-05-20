@@ -1,27 +1,40 @@
 'use client';
 
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Building2, Hash, Calendar, Users,
-  Mail, RotateCcw, AlertCircle, Copy,
+  Mail, RotateCcw, AlertCircle, Copy, Plus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { api, ApiEnvelope } from '@/lib/api';
 import { authStorage } from '@/lib/auth';
 import { Company, Employee, CreatedEmployeeResult } from '@/lib/types';
 import { BrandHeader } from '@/components/brand-header';
 
+const createSchema = z.object({
+  nome: z.string().min(1, 'Nome obrigatório'),
+  email: z.email('E-mail inválido'),
+});
+type CreateForm = z.infer<typeof createSchema>;
+
 export default function MasterCompanyDetailPage() {
   const router = useRouter();
   const params = useParams();
   const companyId = params.id as string;
+  const queryClient = useQueryClient();
   const [resetTarget, setResetTarget] = useState<Employee | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const [successResult, setSuccessResult] = useState<
-    (CreatedEmployeeResult & { nome: string }) | null
+    (CreatedEmployeeResult & { nome: string; title: string }) | null
   >(null);
 
   useEffect(() => {
@@ -46,6 +59,30 @@ export default function MasterCompanyDetailPage() {
     },
   });
 
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<CreateForm>({
+    resolver: zodResolver(createSchema),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (form: CreateForm) => {
+      const res = await api.post<ApiEnvelope<CreatedEmployeeResult>>(
+        `/companies/${companyId}/users`, form,
+      );
+      return res.data.data;
+    },
+    onSuccess: (result) => {
+      toast.success('Usuário criado');
+      setCreateOpen(false);
+      reset();
+      setSuccessResult({ ...result, nome: result.nome, title: 'Usuário criado com sucesso' });
+      queryClient.invalidateQueries({ queryKey: ['master-company-users', companyId] });
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao criar usuário';
+      toast.error(typeof msg === 'string' ? msg : 'Erro ao criar usuário');
+    },
+  });
+
   const resetMutation = useMutation({
     mutationFn: async (userId: number) => {
       const res = await api.post<ApiEnvelope<CreatedEmployeeResult>>(
@@ -56,7 +93,11 @@ export default function MasterCompanyDetailPage() {
     onSuccess: (result, userId) => {
       const target = resetTarget;
       setResetTarget(null);
-      setSuccessResult({ ...result, nome: target?.nome ?? `Usuário #${userId}` });
+      setSuccessResult({
+        ...result,
+        nome: target?.nome ?? `Usuário #${userId}`,
+        title: `Senha de ${target?.nome ?? 'usuário'} resetada`,
+      });
       toast.success('Senha resetada');
     },
     onError: (err: unknown) => {
@@ -79,8 +120,7 @@ export default function MasterCompanyDetailPage() {
         {/* Header */}
         <div className="flex items-start gap-4">
           <Button
-            variant="outline"
-            size="sm"
+            variant="outline" size="sm"
             onClick={() => router.push('/master/companies')}
             className="gap-1.5 cursor-pointer mt-1"
           >
@@ -96,7 +136,7 @@ export default function MasterCompanyDetailPage() {
               </h1>
             </div>
             {company && (
-              <div className="flex items-center gap-4 ml-13 pl-0.5">
+              <div className="flex items-center gap-4 pl-0.5">
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Hash className="h-3 w-3" />{company.cnpj}
                 </span>
@@ -109,11 +149,43 @@ export default function MasterCompanyDetailPage() {
           </div>
         </div>
 
-        {/* Users table */}
+        {/* Users */}
         <div>
-          <div className="flex items-center gap-2 mb-4">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <h2 className="font-semibold text-foreground">Usuários da empresa</h2>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <h2 className="font-semibold text-foreground">Usuários da empresa</h2>
+              {users && (
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                  {users.length}
+                </span>
+              )}
+            </div>
+            <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+              <DialogTrigger render={
+                <Button size="sm" className="gap-1.5 cursor-pointer">
+                  <Plus className="h-3.5 w-3.5" /> Novo usuário
+                </Button>
+              } />
+              <DialogContent>
+                <DialogHeader><DialogTitle>Criar usuário para {company?.name}</DialogTitle></DialogHeader>
+                <form onSubmit={handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label>Nome</Label>
+                    <Input placeholder="Maria Souza" {...register('nome')} />
+                    {errors.nome && <p className="text-xs text-destructive">{errors.nome.message}</p>}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>E-mail</Label>
+                    <Input type="email" placeholder="maria@empresa.com" {...register('email')} />
+                    {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+                  </div>
+                  <Button type="submit" className="w-full cursor-pointer" disabled={createMutation.isPending}>
+                    {createMutation.isPending ? 'Criando...' : 'Criar usuário'}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
 
           {isLoading && (
@@ -128,7 +200,7 @@ export default function MasterCompanyDetailPage() {
                 <Users className="h-5 w-5 text-muted-foreground" />
               </div>
               <p className="font-medium text-foreground text-sm">Nenhum usuário cadastrado</p>
-              <p className="text-xs text-muted-foreground mt-1">Esta empresa ainda não possui usuários.</p>
+              <p className="text-xs text-muted-foreground mt-1">Crie o primeiro usuário para esta empresa.</p>
             </div>
           )}
 
@@ -204,12 +276,13 @@ export default function MasterCompanyDetailPage() {
       <Dialog open={!!successResult} onOpenChange={(o) => !o && setSuccessResult(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Senha de {successResult?.nome} resetada</DialogTitle>
+            <DialogTitle>{successResult?.title ?? 'Sucesso'}</DialogTitle>
           </DialogHeader>
           {successResult && (
             <div className="space-y-4">
               <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-900">
-                Senha resetada com sucesso.
+                <strong>{successResult.nome}</strong>
+                {successResult.title?.includes('criado') ? ' criado(a) com sucesso.' : ' — senha atualizada.'}
               </div>
               <div>
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Credenciais</p>
