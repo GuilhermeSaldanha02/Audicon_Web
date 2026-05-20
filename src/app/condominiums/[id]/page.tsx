@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Building2, Hash, MapPin, Plus, ChevronRight,
-  FileText, Upload, Trash2, Download, Mail, Phone, Home,
+  FileText, Upload, Trash2, Download, Mail, Phone, Home, AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +39,7 @@ export default function CondominiumDetailPage() {
   const condominiumId = params.id as string;
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [deleteCondoOpen, setDeleteCondoOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: condominium, isLoading: loadingCondominium } = useQuery({
@@ -107,6 +108,17 @@ export default function CondominiumDetailPage() {
     onError: () => toast.error('Erro ao remover regimento'),
   });
 
+  const deleteCondominium = useMutation({
+    mutationFn: async () => {
+      await api.delete(`/condominiums/${condominiumId}`);
+    },
+    onSuccess: () => {
+      toast.success('Condomínio removido');
+      router.push('/condominiums');
+    },
+    onError: () => toast.error('Erro ao remover condomínio'),
+  });
+
   async function downloadRegimento() {
     const res = await api.get(`/condominiums/${condominiumId}/regimento`, { responseType: 'blob' });
     const url = URL.createObjectURL(res.data as Blob);
@@ -166,6 +178,15 @@ export default function CondominiumDetailPage() {
               </>
             )}
           </div>
+          {condominium && (
+            <Button
+              variant="outline" size="sm"
+              onClick={() => setDeleteCondoOpen(true)}
+              className="gap-1.5 cursor-pointer text-destructive hover:bg-destructive/10 hover:text-destructive mt-1 shrink-0"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Excluir
+            </Button>
+          )}
         </div>
 
         {/* Regimento */}
@@ -320,6 +341,43 @@ export default function CondominiumDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Delete condominium confirmation */}
+      <Dialog open={deleteCondoOpen} onOpenChange={setDeleteCondoOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Excluir condomínio</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+              <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-destructive">Esta ação é irreversível</p>
+                <p className="text-sm text-muted-foreground">
+                  O condomínio <strong>{condominium?.name}</strong> e todas as suas unidades serão removidos.
+                  As infrações associadas também serão afetadas.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteCondoOpen(false)}
+                disabled={deleteCondominium.isPending}
+                className="cursor-pointer"
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => deleteCondominium.mutate()}
+                disabled={deleteCondominium.isPending}
+                className="cursor-pointer"
+              >
+                {deleteCondominium.isPending ? 'Excluindo...' : 'Confirmar exclusão'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
