@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { ClipboardList, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { api, ApiEnvelope, PaginatedResult } from '@/lib/api';
 import { authStorage } from '@/lib/auth';
@@ -13,25 +13,27 @@ import { BrandHeader } from '@/components/brand-header';
 const ACTION_LABEL: Record<AuditAction, string> = {
   INFRACTION_CREATED: 'Infração criada',
   INFRACTION_APPROVED: 'Infração aprovada',
-  INFRACTION_SENT: 'Infração enviada por e-mail',
-  INFRACTION_WHATSAPP_SENT: 'Infração enviada por WhatsApp',
+  INFRACTION_SENT: 'Enviada por e-mail',
+  INFRACTION_WHATSAPP_SENT: 'Enviada por WhatsApp',
   INFRACTION_DELETED: 'Infração removida',
   CONDOMINIUM_CREATED: 'Condomínio criado',
   CONDOMINIUM_DELETED: 'Condomínio removido',
   COMPANY_CREATED: 'Empresa criada',
   EMPLOYEE_CREATED: 'Funcionário criado',
+  EMPLOYEE_PASSWORD_RESET: 'Senha resetada',
 };
 
-const ACTION_COLOR: Record<AuditAction, string> = {
-  INFRACTION_CREATED: 'bg-blue-100 text-blue-800',
-  INFRACTION_APPROVED: 'bg-purple-100 text-purple-800',
-  INFRACTION_SENT: 'bg-green-100 text-green-800',
-  INFRACTION_WHATSAPP_SENT: 'bg-emerald-100 text-emerald-800',
-  INFRACTION_DELETED: 'bg-red-100 text-red-800',
-  CONDOMINIUM_CREATED: 'bg-cyan-100 text-cyan-800',
-  CONDOMINIUM_DELETED: 'bg-red-100 text-red-800',
-  COMPANY_CREATED: 'bg-yellow-100 text-yellow-800',
-  EMPLOYEE_CREATED: 'bg-orange-100 text-orange-800',
+const ACTION_BADGE: Record<AuditAction, string> = {
+  INFRACTION_CREATED:      'bg-blue-100 text-blue-800',
+  INFRACTION_APPROVED:     'bg-violet-100 text-violet-800',
+  INFRACTION_SENT:         'bg-emerald-100 text-emerald-800',
+  INFRACTION_WHATSAPP_SENT:'bg-teal-100 text-teal-800',
+  INFRACTION_DELETED:      'bg-red-100 text-red-800',
+  CONDOMINIUM_CREATED:     'bg-cyan-100 text-cyan-800',
+  CONDOMINIUM_DELETED:     'bg-red-100 text-red-800',
+  COMPANY_CREATED:         'bg-amber-100 text-amber-800',
+  EMPLOYEE_CREATED:        'bg-orange-100 text-orange-800',
+  EMPLOYEE_PASSWORD_RESET: 'bg-slate-100 text-slate-800',
 };
 
 export default function AuditLogPage() {
@@ -43,14 +45,8 @@ export default function AuditLogPage() {
 
   useEffect(() => {
     const claims = authStorage.getClaims();
-    if (!claims) {
-      router.replace('/login');
-      return;
-    }
-    if (!claims.isMaster && !claims.companyId) {
-      router.replace('/condominiums');
-      return;
-    }
+    if (!claims) { router.replace('/login'); return; }
+    if (!claims.isMaster && !claims.companyId) { router.replace('/condominiums'); return; }
     setIsMaster(!!claims.isMaster);
   }, [router]);
 
@@ -66,13 +62,8 @@ export default function AuditLogPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['audit-log', page, companyFilter],
     queryFn: async () => {
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: String(limit),
-      });
-      if (isMaster && companyFilter) {
-        params.append('companyId', String(companyFilter));
-      }
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      if (isMaster && companyFilter) params.append('companyId', String(companyFilter));
       const res = await api.get<ApiEnvelope<PaginatedResult<AuditLogEntry>>>(
         `/audit-log?${params.toString()}`,
       );
@@ -83,134 +74,120 @@ export default function AuditLogPage() {
   const totalPages = data ? Math.max(1, Math.ceil(data.total / limit)) : 1;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="mx-auto max-w-6xl space-y-6">
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
         <BrandHeader />
+
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Auditoria</h1>
-            <p className="text-sm text-slate-500">
-              Registro de ações sensíveis no sistema.
+            <h1 className="text-2xl font-bold text-foreground">Auditoria</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Registro de ações sensíveis no sistema
             </p>
           </div>
           {isMaster && (
             <div className="flex items-center gap-2">
-              <label className="text-sm text-slate-600">Empresa:</label>
+              <label className="text-sm text-muted-foreground">Empresa:</label>
               <select
-                className="rounded border border-slate-300 px-2 py-1 text-sm"
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring/50 cursor-pointer"
                 value={companyFilter}
                 onChange={(e) => {
-                  setCompanyFilter(
-                    e.target.value === '' ? '' : Number(e.target.value),
-                  );
+                  setCompanyFilter(e.target.value === '' ? '' : Number(e.target.value));
                   setPage(1);
                 }}
               >
                 <option value="">Todas</option>
                 {companiesQuery.data?.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>
           )}
         </div>
 
-        {isLoading && <p className="text-slate-600">Carregando...</p>}
+        {isLoading && (
+          <div className="space-y-2">
+            {[1,2,3,4,5].map(i => (
+              <div key={i} className="h-12 rounded-lg bg-muted animate-pulse" />
+            ))}
+          </div>
+        )}
 
         {data && data.data.length === 0 && (
-          <Card>
-            <CardContent className="py-8 text-center text-slate-500">
-              Nenhum registro encontrado.
-            </CardContent>
-          </Card>
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-16 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-4">
+              <ClipboardList className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="font-medium text-foreground">Nenhum registro encontrado</p>
+          </div>
         )}
 
         {data && data.data.length > 0 && (
-          <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase text-slate-500">
-                    <tr>
-                      <th className="px-4 py-3">Data/hora</th>
-                      <th className="px-4 py-3">Ação</th>
-                      <th className="px-4 py-3">Usuário</th>
-                      <th className="px-4 py-3">Entidade</th>
-                      <th className="px-4 py-3">Contexto</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.data.map((entry) => (
-                      <tr
-                        key={entry.id}
-                        className="border-b border-slate-100 last:border-0"
-                      >
-                        <td className="px-4 py-3 align-top text-slate-700 whitespace-nowrap">
-                          {new Date(entry.createdAt).toLocaleString('pt-BR')}
-                        </td>
-                        <td className="px-4 py-3 align-top">
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                              ACTION_COLOR[entry.action] ?? 'bg-slate-100 text-slate-800'
-                            }`}
-                          >
-                            {ACTION_LABEL[entry.action] ?? entry.action}
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-5 py-3 text-left whitespace-nowrap">Data/hora</th>
+                    <th className="px-5 py-3 text-left">Ação</th>
+                    <th className="px-5 py-3 text-left">Usuário</th>
+                    <th className="px-5 py-3 text-left">Entidade</th>
+                    <th className="px-5 py-3 text-left">Contexto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.data.map((entry) => (
+                    <tr key={entry.id} className="border-t border-border/50 hover:bg-muted/20 transition-colors">
+                      <td className="px-5 py-3 text-muted-foreground whitespace-nowrap">
+                        {new Date(entry.createdAt).toLocaleString('pt-BR')}
+                      </td>
+                      <td className="px-5 py-3">
+                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          ACTION_BADGE[entry.action] ?? 'bg-muted text-muted-foreground'
+                        }`}>
+                          {ACTION_LABEL[entry.action] ?? entry.action}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-foreground">
+                        {entry.userEmail ?? '—'}
+                        {entry.userIsMaster && (
+                          <span className="ml-1.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700">
+                            master
                           </span>
-                        </td>
-                        <td className="px-4 py-3 align-top text-slate-700">
-                          {entry.userEmail ?? '—'}
-                          {entry.userIsMaster && (
-                            <span className="ml-1 text-xs text-amber-700">
-                              (master)
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 align-top text-slate-700">
-                          {entry.entity}
-                          {entry.entityId != null && (
-                            <span className="text-slate-500">
-                              {' '}
-                              #{entry.entityId}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 align-top">
-                          {entry.context && (
-                            <code className="block max-w-md truncate rounded bg-slate-100 px-2 py-1 text-xs">
-                              {JSON.stringify(entry.context)}
-                            </code>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                        )}
+                      </td>
+                      <td className="px-5 py-3 text-muted-foreground">
+                        {entry.entity}
+                        {entry.entityId != null && (
+                          <span className="text-muted-foreground/60"> #{entry.entityId}</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3">
+                        {entry.context && (
+                          <code className="block max-w-xs truncate rounded bg-muted px-2 py-1 text-xs text-muted-foreground">
+                            {JSON.stringify(entry.context)}
+                          </code>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
 
         {data && data.total > 0 && (
-          <div className="flex items-center justify-between text-sm text-slate-600">
-            <span>
-              Total: {data.total} registro(s) · Página {page} de {totalPages}
-            </span>
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>{data.total} registro(s) · Página {page} de {totalPages}</span>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                Anterior
+              <Button variant="outline" size="sm" disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))} className="gap-1 cursor-pointer">
+                <ChevronLeft className="h-3.5 w-3.5" /> Anterior
               </Button>
-              <Button
-                variant="outline"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Próxima
+              <Button variant="outline" size="sm" disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)} className="gap-1 cursor-pointer">
+                Próxima <ChevronRight className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>

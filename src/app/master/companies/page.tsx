@@ -8,28 +8,18 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  Building2, Plus, Hash, Calendar, Users,
+  ChevronRight, Copy, AlertCircle,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import { api, ApiEnvelope } from '@/lib/api';
 import { authStorage } from '@/lib/auth';
-import {
-  Company,
-  CreateCompanyRequest,
-  CreatedCompanyResult,
-} from '@/lib/types';
+import { Company, CreateCompanyRequest, CreatedCompanyResult } from '@/lib/types';
 import { BrandHeader } from '@/components/brand-header';
 
 const createSchema = z.object({
@@ -40,26 +30,18 @@ const createSchema = z.object({
     email: z.email('E-mail inválido'),
   }),
 });
-
 type CreateForm = z.infer<typeof createSchema>;
 
 export default function MasterCompaniesPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
-  const [successResult, setSuccessResult] =
-    useState<CreatedCompanyResult | null>(null);
+  const [successResult, setSuccessResult] = useState<CreatedCompanyResult | null>(null);
 
-  // Client-side guard: redirect se não-master
   useEffect(() => {
     const claims = authStorage.getClaims();
-    if (!claims) {
-      router.replace('/login');
-      return;
-    }
-    if (!claims.isMaster) {
-      router.replace('/condominiums');
-    }
+    if (!claims) { router.replace('/login'); return; }
+    if (!claims.isMaster) router.replace('/condominiums');
   }, [router]);
 
   const { data, isLoading } = useQuery({
@@ -70,19 +52,13 @@ export default function MasterCompaniesPage() {
     },
   });
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<CreateForm>({ resolver: zodResolver(createSchema) });
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<CreateForm>({
+    resolver: zodResolver(createSchema),
+  });
 
   const createMutation = useMutation({
     mutationFn: async (form: CreateCompanyRequest) => {
-      const res = await api.post<ApiEnvelope<CreatedCompanyResult>>(
-        '/companies',
-        form,
-      );
+      const res = await api.post<ApiEnvelope<CreatedCompanyResult>>('/companies', form);
       return res.data.data;
     },
     onSuccess: (result) => {
@@ -93,8 +69,7 @@ export default function MasterCompaniesPage() {
       queryClient.invalidateQueries({ queryKey: ['master-companies'] });
     },
     onError: (err: any) => {
-      const msg =
-        err?.response?.data?.message ?? 'Erro ao criar empresa';
+      const msg = err?.response?.data?.message ?? 'Erro ao criar empresa';
       toast.error(typeof msg === 'string' ? msg : 'Erro ao criar empresa');
     },
   });
@@ -106,83 +81,59 @@ export default function MasterCompaniesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="mx-auto max-w-5xl space-y-6">
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
         <BrandHeader />
+
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Empresas</h1>
-            <p className="text-sm text-slate-500">
-              Administre as empresas (administradoras) que usam o sistema.
+            <h1 className="text-2xl font-bold text-foreground">Empresas</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Administradoras que utilizam o sistema
             </p>
           </div>
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger render={<Button />}>+ Nova empresa</DialogTrigger>
+            <DialogTrigger render={
+              <Button className="gap-2 cursor-pointer">
+                <Plus className="h-4 w-4" />
+                Nova empresa
+              </Button>
+            } />
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Criar empresa</DialogTitle>
               </DialogHeader>
-              <form
-                onSubmit={handleSubmit((d) => createMutation.mutate(d))}
-                className="space-y-4"
-              >
-                <div className="space-y-1">
+              <form onSubmit={handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
+                <div className="space-y-1.5">
                   <Label>Nome da empresa</Label>
-                  <Input
-                    placeholder="Administradora Exemplo Ltda"
-                    {...register('name')}
-                  />
-                  {errors.name && (
-                    <p className="text-sm text-red-600">{errors.name.message}</p>
-                  )}
+                  <Input placeholder="Administradora Exemplo Ltda" {...register('name')} />
+                  {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <Label>CNPJ</Label>
-                  <Input
-                    placeholder="12.345.678/0001-90"
-                    {...register('cnpj')}
-                  />
-                  {errors.cnpj && (
-                    <p className="text-sm text-red-600">{errors.cnpj.message}</p>
-                  )}
+                  <Input placeholder="12.345.678/0001-90" {...register('cnpj')} />
+                  {errors.cnpj && <p className="text-xs text-destructive">{errors.cnpj.message}</p>}
                 </div>
-                <div className="rounded border border-slate-200 p-3">
-                  <p className="mb-2 text-xs font-medium text-slate-500">
-                    USUÁRIO ADMINISTRADOR INICIAL
+                <div className="rounded-lg border border-border p-4 space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Administrador inicial
                   </p>
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <Label>Nome</Label>
-                      <Input
-                        placeholder="João da Silva"
-                        {...register('admin.nome')}
-                      />
-                      {errors.admin?.nome && (
-                        <p className="text-sm text-red-600">
-                          {errors.admin.nome.message}
-                        </p>
-                      )}
-                    </div>
-                    <div className="space-y-1">
-                      <Label>E-mail</Label>
-                      <Input
-                        type="email"
-                        placeholder="joao@empresa.com"
-                        {...register('admin.email')}
-                      />
-                      {errors.admin?.email && (
-                        <p className="text-sm text-red-600">
-                          {errors.admin.email.message}
-                        </p>
-                      )}
-                    </div>
+                  <div className="space-y-1.5">
+                    <Label>Nome</Label>
+                    <Input placeholder="João da Silva" {...register('admin.nome')} />
+                    {errors.admin?.nome && (
+                      <p className="text-xs text-destructive">{errors.admin.nome.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>E-mail</Label>
+                    <Input type="email" placeholder="joao@empresa.com" {...register('admin.email')} />
+                    {errors.admin?.email && (
+                      <p className="text-xs text-destructive">{errors.admin.email.message}</p>
+                    )}
                   </div>
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={createMutation.isPending}
-                >
+                <Button type="submit" className="w-full cursor-pointer" disabled={createMutation.isPending}>
                   {createMutation.isPending ? 'Criando...' : 'Criar empresa'}
                 </Button>
               </form>
@@ -190,90 +141,100 @@ export default function MasterCompaniesPage() {
           </Dialog>
         </div>
 
-        {isLoading && <p className="text-slate-600">Carregando...</p>}
+        {isLoading && (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-40 rounded-xl bg-muted animate-pulse" />
+            ))}
+          </div>
+        )}
 
-        {data && data.length === 0 && (
-          <Card>
-            <CardContent className="py-8 text-center text-slate-500">
-              Nenhuma empresa cadastrada ainda.
-            </CardContent>
-          </Card>
+        {!isLoading && data?.length === 0 && (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-16 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-4">
+              <Building2 className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="font-medium text-foreground">Nenhuma empresa cadastrada</p>
+            <p className="text-sm text-muted-foreground mt-1">Crie a primeira empresa para começar.</p>
+          </div>
         )}
 
         {data && data.length > 0 && (
-          <div className="space-y-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {data.map((company) => (
-              <Card
+              <button
                 key={company.id}
-                className="cursor-pointer transition hover:shadow-md"
                 onClick={() => router.push(`/master/companies/${company.id}`)}
+                className="group text-left rounded-xl border border-border bg-card p-5 transition-all duration-200 hover:border-accent/40 hover:shadow-md cursor-pointer"
               >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">{company.name}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-slate-500">
-                  <p>CNPJ: {company.cnpj}</p>
-                  <p>
-                    Criada em{' '}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <Building2 className="h-5 w-5 text-primary" />
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                </div>
+                <p className="font-semibold text-foreground leading-snug mb-3">{company.name}</p>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Hash className="h-3 w-3" />
+                    {company.cnpj}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Calendar className="h-3 w-3" />
                     {new Date(company.createdAt).toLocaleDateString('pt-BR')}
-                  </p>
-                  <p className="mt-2 text-xs text-blue-600">
-                    Clique para gerenciar usuários →
-                  </p>
-                </CardContent>
-              </Card>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-accent font-medium mt-2">
+                    <Users className="h-3 w-3" />
+                    Gerenciar usuários
+                  </div>
+                </div>
+              </button>
             ))}
           </div>
         )}
       </div>
 
-      {/* Modal de sucesso com senha temporária */}
-      <Dialog
-        open={!!successResult}
-        onOpenChange={(o) => !o && setSuccessResult(null)}
-      >
+      <Dialog open={!!successResult} onOpenChange={(o) => !o && setSuccessResult(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Empresa criada com sucesso</DialogTitle>
           </DialogHeader>
           {successResult && (
             <div className="space-y-4">
-              <div className="rounded bg-green-50 p-3">
+              <div className="rounded-lg bg-green-50 border border-green-200 p-3">
                 <p className="text-sm text-green-900">
-                  <strong>{successResult.company.name}</strong> cadastrada
-                  (CNPJ {successResult.company.cnpj}).
+                  <strong>{successResult.company.name}</strong> cadastrada (CNPJ {successResult.company.cnpj}).
                 </p>
               </div>
               <div>
-                <p className="mb-2 text-xs font-medium text-slate-500">
-                  CREDENCIAIS DO ADMINISTRADOR
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Credenciais do administrador
                 </p>
-                <div className="space-y-2 rounded border border-amber-300 bg-amber-50 p-3">
+                <div className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
                   <p className="text-sm">
-                    <span className="text-slate-600">E-mail:</span>{' '}
-                    <span className="font-mono">
-                      {successResult.admin.email}
-                    </span>
+                    <span className="text-muted-foreground">E-mail:</span>{' '}
+                    <span className="font-mono">{successResult.admin.email}</span>
                   </p>
                   <div>
-                    <p className="text-sm text-slate-600">Senha temporária:</p>
-                    <div className="mt-1 flex items-center gap-2">
-                      <code className="flex-1 rounded bg-white px-3 py-2 font-mono text-base">
+                    <p className="text-sm text-muted-foreground mb-1">Senha temporária:</p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 rounded bg-white px-3 py-2 font-mono text-base border border-border">
                         {successResult.admin.tempPassword}
                       </code>
-                      <Button variant="outline" onClick={copyPassword}>
+                      <Button variant="outline" size="sm" onClick={copyPassword} className="gap-1.5 cursor-pointer">
+                        <Copy className="h-3.5 w-3.5" />
                         Copiar
                       </Button>
                     </div>
                   </div>
                 </div>
-                <p className="mt-2 text-xs text-amber-700">
-                  ⚠️ Anote esta senha agora. Por segurança, ela não será
-                  exibida novamente.
-                </p>
+                <div className="flex items-start gap-2 mt-2">
+                  <AlertCircle className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
+                  <p className="text-xs text-amber-700">Anote esta senha. Por segurança, ela não será exibida novamente.</p>
+                </div>
               </div>
               <div className="flex justify-end">
-                <Button onClick={() => setSuccessResult(null)}>Fechar</Button>
+                <Button onClick={() => setSuccessResult(null)} className="cursor-pointer">Fechar</Button>
               </div>
             </div>
           )}

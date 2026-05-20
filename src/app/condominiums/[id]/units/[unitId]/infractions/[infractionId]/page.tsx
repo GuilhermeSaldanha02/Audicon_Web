@@ -4,33 +4,33 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  ArrowLeft, Bot, CheckCircle, Mail, MessageCircle,
+  FileDown, AlertCircle, Clock, Send,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import { api, ApiEnvelope } from '@/lib/api';
 import { authStorage } from '@/lib/auth';
 import { Infraction, InfractionStatus } from '@/lib/types';
 import { InfractionImages } from '@/components/infraction-images';
 import { NotificationHistory } from '@/components/notification-history';
+import { BrandHeader } from '@/components/brand-header';
 
-const statusLabel: Record<InfractionStatus, string> = {
+const STATUS_LABEL: Record<InfractionStatus, string> = {
   pending: 'Pendente',
   analyzed: 'Analisado',
   approved: 'Aprovado',
   sent: 'Enviado',
 };
 
-const statusColor: Record<InfractionStatus, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
+const STATUS_BADGE: Record<InfractionStatus, string> = {
+  pending: 'bg-amber-100 text-amber-800',
   analyzed: 'bg-blue-100 text-blue-800',
-  approved: 'bg-purple-100 text-purple-800',
-  sent: 'bg-green-100 text-green-800',
+  approved: 'bg-violet-100 text-violet-800',
+  sent: 'bg-emerald-100 text-emerald-800',
 };
 
 export default function InfractionDetailPage() {
@@ -54,9 +54,7 @@ export default function InfractionDetailPage() {
 
   const analyzeMutation = useMutation({
     mutationFn: async () => {
-      const res = await api.post<ApiEnvelope<Infraction>>(
-        `/infractions/${infractionId}/analyze`,
-      );
+      const res = await api.post<ApiEnvelope<Infraction>>(`/infractions/${infractionId}/analyze`);
       return res.data.data;
     },
     onSuccess: () => {
@@ -70,8 +68,7 @@ export default function InfractionDetailPage() {
   const approveMutation = useMutation({
     mutationFn: async () => {
       const res = await api.patch<ApiEnvelope<Infraction>>(
-        `/infractions/${infractionId}/approve`,
-        {},
+        `/infractions/${infractionId}/approve`, {},
       );
       return res.data.data;
     },
@@ -86,9 +83,7 @@ export default function InfractionDetailPage() {
 
   const sendMutation = useMutation({
     mutationFn: async () => {
-      const res = await api.post<ApiEnvelope<Infraction>>(
-        `/infractions/${infractionId}/send`,
-      );
+      const res = await api.post<ApiEnvelope<Infraction>>(`/infractions/${infractionId}/send`);
       return res.data.data;
     },
     onSuccess: () => {
@@ -138,290 +133,242 @@ export default function InfractionDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-slate-600">Carregando...</p>
+      <div className="min-h-screen bg-background">
+        <div className="mx-auto max-w-6xl px-6 py-8 space-y-4">
+          <BrandHeader />
+          <div className="space-y-3">
+            {[1,2,3].map(i => <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />)}
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!infraction) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-red-600">Infração não encontrada</p>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-destructive">Infração não encontrada</p>
       </div>
     );
   }
 
+  const hasAnalysis = ['analyzed', 'approved', 'sent'].includes(infraction.status);
+
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="mx-auto max-w-3xl space-y-6">
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-6xl px-6 py-8 space-y-6">
+        <BrandHeader />
+
+        {/* Header */}
         <div className="flex items-center gap-4">
           <Button
-            variant="outline"
-            onClick={() =>
-              router.push(
-                `/condominiums/${condominiumId}/units/${unitId}/infractions`,
-              )
-            }
+            variant="outline" size="sm"
+            onClick={() => router.push(`/condominiums/${condominiumId}/units/${unitId}/infractions`)}
+            className="gap-1.5 cursor-pointer"
           >
-            ← Voltar
+            <ArrowLeft className="h-3.5 w-3.5" /> Voltar
           </Button>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">Infração #{infraction.id}</h1>
-            <span
-              className={`rounded-full px-3 py-1 text-sm font-medium ${statusColor[infraction.status]}`}
-            >
-              {statusLabel[infraction.status]}
+            <h1 className="text-2xl font-bold text-foreground">Infração #{infraction.id}</h1>
+            <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${STATUS_BADGE[infraction.status]}`}>
+              {STATUS_LABEL[infraction.status]}
             </span>
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Descrição da ocorrência</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-slate-700">{infraction.description}</p>
-            {infraction.occurrenceDate && (
-              <p className="mt-2 text-sm text-slate-500">
-                Data:{' '}
-                {new Date(infraction.occurrenceDate).toLocaleDateString('pt-BR')}
-              </p>
-            )}
-          </CardContent>
-        </Card>
+        {/* Description */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <h2 className="font-semibold text-foreground mb-3">Descrição da ocorrência</h2>
+          <p className="text-foreground leading-relaxed">{infraction.description}</p>
+          {infraction.occurrenceDate && (
+            <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" />
+              {new Date(infraction.occurrenceDate).toLocaleDateString('pt-BR')}
+            </div>
+          )}
+        </div>
 
+        {/* Images */}
         <InfractionImages infractionId={infractionId} />
 
-        {(infraction.status === 'analyzed' ||
-          infraction.status === 'approved' ||
-          infraction.status === 'sent') &&
-          infraction.formalDescription && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Análise da IA</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-slate-500 mb-1">
-                    Descrição formal
-                  </p>
-                  <p className="whitespace-pre-wrap text-slate-700">
-                    {infraction.formalDescription}
-                  </p>
-                </div>
-                {infraction.suggestedPenalty && (
-                  <div>
-                    <p className="text-sm font-medium text-slate-500 mb-1">
-                      Penalidade sugerida
-                    </p>
-                    <p className="text-slate-700">
-                      {infraction.suggestedPenalty}
-                    </p>
-                  </div>
-                )}
-                {infraction.approvedAt && (
-                  <div>
-                    <p className="text-sm font-medium text-slate-500 mb-1">
-                      Aprovada em
-                    </p>
-                    <p className="text-slate-700">
-                      {new Date(infraction.approvedAt).toLocaleString('pt-BR')}
-                    </p>
-                  </div>
-                )}
-                {infraction.sentAt && (
-                  <div>
-                    <p className="text-sm font-medium text-slate-500 mb-1">
-                      Enviada em
-                    </p>
-                    <p className="text-slate-700">
-                      {new Date(infraction.sentAt).toLocaleString('pt-BR')}
-                      {infraction.unit?.residentEmail && (
-                        <span className="text-slate-500">
-                          {' '}
-                          → {infraction.unit.residentEmail}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                )}
-                {infraction.whatsappSentAt && (
-                  <div>
-                    <p className="text-sm font-medium text-slate-500 mb-1">
-                      WhatsApp enviado em
-                    </p>
-                    <p className="text-slate-700">
-                      {new Date(infraction.whatsappSentAt).toLocaleString(
-                        'pt-BR',
-                      )}
-                      {infraction.unit?.residentPhone && (
-                        <span className="text-slate-500">
-                          {' '}
-                          → {infraction.unit.residentPhone}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+        {/* AI Analysis */}
+        {hasAnalysis && infraction.formalDescription && (
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <Bot className="h-4 w-4 text-accent" />
+              <h2 className="font-semibold text-foreground">Análise da IA</h2>
+            </div>
 
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                Descrição formal
+              </p>
+              <p className="whitespace-pre-wrap text-foreground leading-relaxed">
+                {infraction.formalDescription}
+              </p>
+            </div>
+
+            {infraction.suggestedPenalty && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                  Penalidade sugerida
+                </p>
+                <p className="text-foreground">{infraction.suggestedPenalty}</p>
+              </div>
+            )}
+
+            <div className="grid sm:grid-cols-2 gap-3 pt-2 border-t border-border/50">
+              {infraction.approvedAt && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <CheckCircle className="h-3.5 w-3.5 text-violet-500" />
+                  Aprovada em {new Date(infraction.approvedAt).toLocaleString('pt-BR')}
+                </div>
+              )}
+              {infraction.sentAt && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Send className="h-3.5 w-3.5 text-emerald-500" />
+                  E-mail enviado em {new Date(infraction.sentAt).toLocaleString('pt-BR')}
+                  {infraction.unit?.residentEmail && (
+                    <span className="text-muted-foreground/70">→ {infraction.unit.residentEmail}</span>
+                  )}
+                </div>
+              )}
+              {infraction.whatsappSentAt && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <MessageCircle className="h-3.5 w-3.5 text-teal-500" />
+                  WhatsApp enviado em {new Date(infraction.whatsappSentAt).toLocaleString('pt-BR')}
+                  {infraction.unit?.residentPhone && (
+                    <span className="text-muted-foreground/70">→ {infraction.unit.residentPhone}</span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Action buttons */}
         <div className="flex flex-wrap gap-3">
           {infraction.status === 'pending' && (
             <Button
               onClick={() => analyzeMutation.mutate()}
               disabled={analyzeMutation.isPending}
+              className="gap-2 cursor-pointer"
             >
-              {analyzeMutation.isPending
-                ? 'Analisando...'
-                : '🤖 Analisar via IA'}
+              <Bot className="h-4 w-4" />
+              {analyzeMutation.isPending ? 'Analisando...' : 'Analisar via IA'}
             </Button>
           )}
 
           {infraction.status === 'analyzed' && (
             <Dialog open={approveOpen} onOpenChange={setApproveOpen}>
-              <DialogTrigger render={<Button />}>✅ Aprovar</DialogTrigger>
+              <DialogTrigger render={
+                <Button className="gap-2 cursor-pointer">
+                  <CheckCircle className="h-4 w-4" /> Aprovar
+                </Button>
+              } />
               <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Confirmar aprovação</DialogTitle>
-                </DialogHeader>
-                <p className="text-sm text-slate-600">
-                  Ao aprovar, a infração ficará pronta para envio ao morador.
-                  Esta ação não pode ser desfeita.
+                <DialogHeader><DialogTitle>Confirmar aprovação</DialogTitle></DialogHeader>
+                <p className="text-sm text-muted-foreground">
+                  Ao aprovar, a infração ficará pronta para envio ao morador. Esta ação não pode ser desfeita.
                 </p>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setApproveOpen(false)}
-                    disabled={approveMutation.isPending}
-                  >
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button variant="outline" onClick={() => setApproveOpen(false)} disabled={approveMutation.isPending} className="cursor-pointer">
                     Cancelar
                   </Button>
-                  <Button
-                    onClick={() => approveMutation.mutate()}
-                    disabled={approveMutation.isPending}
-                  >
-                    {approveMutation.isPending
-                      ? 'Aprovando...'
-                      : 'Confirmar aprovação'}
+                  <Button onClick={() => approveMutation.mutate()} disabled={approveMutation.isPending} className="cursor-pointer">
+                    {approveMutation.isPending ? 'Aprovando...' : 'Confirmar aprovação'}
                   </Button>
                 </div>
               </DialogContent>
             </Dialog>
           )}
 
-          {infraction.status === 'approved' &&
-            (infraction.unit?.residentEmail ? (
+          {infraction.status === 'approved' && (
+            infraction.unit?.residentEmail ? (
               <Dialog open={sendOpen} onOpenChange={setSendOpen}>
-                <DialogTrigger render={<Button />}>
-                  📧 Enviar por e-mail
-                </DialogTrigger>
+                <DialogTrigger render={
+                  <Button className="gap-2 cursor-pointer">
+                    <Mail className="h-4 w-4" /> Enviar por e-mail
+                  </Button>
+                } />
                 <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Confirmar envio</DialogTitle>
-                  </DialogHeader>
-                  <p className="text-sm text-slate-600">
-                    O documento será enviado por e-mail para:
-                  </p>
-                  <p className="rounded bg-slate-100 px-3 py-2 font-mono text-sm">
+                  <DialogHeader><DialogTitle>Confirmar envio</DialogTitle></DialogHeader>
+                  <p className="text-sm text-muted-foreground">O documento será enviado por e-mail para:</p>
+                  <p className="rounded-lg border border-border bg-muted/50 px-3 py-2 font-mono text-sm">
                     {infraction.unit.residentEmail}
                   </p>
-                  <p className="text-xs text-slate-500">
-                    Esta ação não pode ser desfeita.
-                  </p>
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setSendOpen(false)}
-                      disabled={sendMutation.isPending}
-                    >
+                  <p className="text-xs text-muted-foreground">Esta ação não pode ser desfeita.</p>
+                  <div className="flex justify-end gap-2 mt-2">
+                    <Button variant="outline" onClick={() => setSendOpen(false)} disabled={sendMutation.isPending} className="cursor-pointer">
                       Cancelar
                     </Button>
-                    <Button
-                      onClick={() => sendMutation.mutate()}
-                      disabled={sendMutation.isPending}
-                    >
-                      {sendMutation.isPending
-                        ? 'Enviando...'
-                        : 'Confirmar envio'}
+                    <Button onClick={() => sendMutation.mutate()} disabled={sendMutation.isPending} className="cursor-pointer">
+                      {sendMutation.isPending ? 'Enviando...' : 'Confirmar envio'}
                     </Button>
                   </div>
                 </DialogContent>
               </Dialog>
             ) : (
               <div className="flex items-center gap-2">
-                <Button variant="outline" disabled>
-                  📧 Enviar por e-mail
+                <Button variant="outline" disabled className="gap-2">
+                  <Mail className="h-4 w-4" /> Enviar por e-mail
                 </Button>
-                <span className="text-xs text-amber-700">
-                  Cadastre o e-mail do morador na unidade para habilitar o
-                  envio.
-                </span>
+                <div className="flex items-center gap-1 text-xs text-amber-700">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  Cadastre o e-mail do morador na unidade.
+                </div>
               </div>
-            ))}
+            )
+          )}
 
-          {(infraction.status === 'approved' ||
-            infraction.status === 'sent') &&
-            (infraction.unit?.residentPhone ? (
+          {(infraction.status === 'approved' || infraction.status === 'sent') && (
+            infraction.unit?.residentPhone ? (
               <Dialog open={whatsappOpen} onOpenChange={setWhatsappOpen}>
-                <DialogTrigger render={<Button variant="outline" />}>
-                  📱 Enviar WhatsApp
-                </DialogTrigger>
+                <DialogTrigger render={
+                  <Button variant="outline" className="gap-2 cursor-pointer">
+                    <MessageCircle className="h-4 w-4" /> Enviar WhatsApp
+                  </Button>
+                } />
                 <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Enviar alerta por WhatsApp</DialogTitle>
-                  </DialogHeader>
-                  <p className="text-sm text-slate-600">
-                    Um alerta será enviado para o WhatsApp:
-                  </p>
-                  <p className="rounded bg-slate-100 px-3 py-2 font-mono text-sm">
+                  <DialogHeader><DialogTitle>Enviar alerta por WhatsApp</DialogTitle></DialogHeader>
+                  <p className="text-sm text-muted-foreground">Um alerta será enviado para:</p>
+                  <p className="rounded-lg border border-border bg-muted/50 px-3 py-2 font-mono text-sm">
                     {infraction.unit.residentPhone}
                   </p>
-                  <p className="text-xs text-slate-500">
-                    O documento completo já foi (ou será) enviado por e-mail. O
-                    WhatsApp é apenas um aviso curto.
+                  <p className="text-xs text-muted-foreground">
+                    O documento completo já foi (ou será) enviado por e-mail. O WhatsApp é apenas um aviso curto.
                   </p>
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setWhatsappOpen(false)}
-                      disabled={whatsappMutation.isPending}
-                    >
+                  <div className="flex justify-end gap-2 mt-2">
+                    <Button variant="outline" onClick={() => setWhatsappOpen(false)} disabled={whatsappMutation.isPending} className="cursor-pointer">
                       Cancelar
                     </Button>
-                    <Button
-                      onClick={() => whatsappMutation.mutate()}
-                      disabled={whatsappMutation.isPending}
-                    >
-                      {whatsappMutation.isPending
-                        ? 'Enviando...'
-                        : 'Confirmar envio'}
+                    <Button onClick={() => whatsappMutation.mutate()} disabled={whatsappMutation.isPending} className="cursor-pointer">
+                      {whatsappMutation.isPending ? 'Enviando...' : 'Confirmar envio'}
                     </Button>
                   </div>
                 </DialogContent>
               </Dialog>
             ) : (
               <div className="flex items-center gap-2">
-                <Button variant="outline" disabled>
-                  📱 Enviar WhatsApp
+                <Button variant="outline" disabled className="gap-2">
+                  <MessageCircle className="h-4 w-4" /> Enviar WhatsApp
                 </Button>
-                <span className="text-xs text-amber-700">
+                <div className="flex items-center gap-1 text-xs text-amber-700">
+                  <AlertCircle className="h-3.5 w-3.5" />
                   Cadastre o telefone do morador na unidade.
-                </span>
+                </div>
               </div>
-            ))}
+            )
+          )}
 
-          {(infraction.status === 'analyzed' ||
-            infraction.status === 'approved' ||
-            infraction.status === 'sent') && (
-            <Button onClick={downloadPdf} variant="outline">
-              📄 Baixar PDF
+          {hasAnalysis && (
+            <Button onClick={downloadPdf} variant="outline" className="gap-2 cursor-pointer">
+              <FileDown className="h-4 w-4" /> Baixar PDF
             </Button>
           )}
         </div>
 
+        {/* Notification history */}
         <NotificationHistory infractionId={Number(infractionId)} />
       </div>
     </div>
