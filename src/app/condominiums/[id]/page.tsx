@@ -7,30 +7,27 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  ArrowLeft, Building2, Hash, MapPin, Plus, ChevronRight,
+  FileText, Upload, Trash2, Download, Mail, Phone, Home,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import { api, ApiEnvelope } from '@/lib/api';
 import { Condominium, Unit } from '@/lib/types';
+import { BrandHeader } from '@/components/brand-header';
 
 const unitSchema = z.object({
   identifier: z.string().min(1, 'Identificador obrigatório'),
   ownerName: z.string().min(1, 'Nome do proprietário obrigatório'),
-  residentEmail: z
-    .string()
-    .trim()
-    .optional()
-    .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), {
-      message: 'E-mail inválido',
-    }),
+  residentEmail: z.string().trim().optional().refine(
+    (v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+    { message: 'E-mail inválido' },
+  ),
   residentPhone: z.string().trim().optional(),
 });
 
@@ -42,6 +39,7 @@ export default function CondominiumDetailPage() {
   const condominiumId = params.id as string;
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: condominium, isLoading: loadingCondominium } = useQuery({
     queryKey: ['condominium', condominiumId],
@@ -54,19 +52,14 @@ export default function CondominiumDetailPage() {
   const { data: units, isLoading: loadingUnits } = useQuery({
     queryKey: ['units', condominiumId],
     queryFn: async () => {
-      const res = await api.get<ApiEnvelope<Unit[]>>(
-        `/condominiums/${condominiumId}/units`,
-      );
+      const res = await api.get<ApiEnvelope<Unit[]>>(`/condominiums/${condominiumId}/units`);
       return res.data.data;
     },
   });
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<UnitForm>({ resolver: zodResolver(unitSchema) });
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<UnitForm>({
+    resolver: zodResolver(unitSchema),
+  });
 
   const createUnit = useMutation({
     mutationFn: async (form: UnitForm) => {
@@ -76,10 +69,7 @@ export default function CondominiumDetailPage() {
         ...(form.residentEmail ? { residentEmail: form.residentEmail } : {}),
         ...(form.residentPhone ? { residentPhone: form.residentPhone } : {}),
       };
-      const res = await api.post<ApiEnvelope<Unit>>(
-        `/condominiums/${condominiumId}/units`,
-        payload,
-      );
+      const res = await api.post<ApiEnvelope<Unit>>(`/condominiums/${condominiumId}/units`, payload);
       return res.data.data;
     },
     onSuccess: () => {
@@ -90,8 +80,6 @@ export default function CondominiumDetailPage() {
     },
     onError: () => toast.error('Erro ao criar unidade'),
   });
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const uploadRegimento = useMutation({
     mutationFn: async (file: File) => {
@@ -120,9 +108,7 @@ export default function CondominiumDetailPage() {
   });
 
   async function downloadRegimento() {
-    const res = await api.get(`/condominiums/${condominiumId}/regimento`, {
-      responseType: 'blob',
-    });
+    const res = await api.get(`/condominiums/${condominiumId}/regimento`, { responseType: 'blob' });
     const url = URL.createObjectURL(res.data as Blob);
     const a = document.createElement('a');
     a.href = url;
@@ -143,175 +129,196 @@ export default function CondominiumDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => router.push('/condominiums')}>
-            ← Voltar
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
+        <BrandHeader />
+
+        {/* Header */}
+        <div className="flex items-start gap-4">
+          <Button
+            variant="outline" size="sm"
+            onClick={() => router.push('/condominiums')}
+            className="gap-1.5 cursor-pointer mt-1"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Voltar
           </Button>
-          {loadingCondominium ? (
-            <p className="text-slate-600">Carregando...</p>
+          <div className="flex-1">
+            {loadingCondominium ? (
+              <div className="h-8 w-64 rounded bg-muted animate-pulse" />
+            ) : (
+              <>
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <Building2 className="h-5 w-5 text-primary" />
+                  </div>
+                  <h1 className="text-2xl font-bold text-foreground">{condominium?.name}</h1>
+                </div>
+                <div className="flex items-center gap-4 pl-0.5">
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Hash className="h-3 w-3" />{condominium?.cnpj}
+                  </span>
+                  {condominium?.address && (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <MapPin className="h-3 w-3 shrink-0" />{condominium.address}
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Regimento */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <h2 className="font-semibold text-foreground">Regimento Interno</h2>
+          </div>
+          {condominium?.regimentoFilename ? (
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+              <FileText className="h-4 w-4 text-accent shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {condominium.regimentoFilename}
+                </p>
+                {condominium.regimentoUploadedAt && (
+                  <p className="text-xs text-muted-foreground">
+                    Enviado em {new Date(condominium.regimentoUploadedAt).toLocaleDateString('pt-BR')}
+                  </p>
+                )}
+              </div>
+              <Button variant="outline" size="sm" onClick={downloadRegimento} className="gap-1.5 cursor-pointer shrink-0">
+                <Download className="h-3.5 w-3.5" /> Baixar
+              </Button>
+              <Button
+                variant="outline" size="sm"
+                disabled={deleteRegimento.isPending}
+                onClick={() => deleteRegimento.mutate()}
+                className="gap-1.5 cursor-pointer text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           ) : (
-            <div>
-              <h1 className="text-3xl font-bold">{condominium?.name}</h1>
-              <p className="text-sm text-slate-500">
-                CNPJ: {condominium?.cnpj} · {condominium?.address}
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground">
+                Nenhum regimento cadastrado. A IA usará análise genérica.
               </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <Button
+                variant="outline" size="sm"
+                disabled={uploadRegimento.isPending}
+                onClick={() => fileInputRef.current?.click()}
+                className="gap-1.5 cursor-pointer shrink-0"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                {uploadRegimento.isPending ? 'Enviando...' : 'Enviar PDF'}
+              </Button>
             </div>
           )}
         </div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Regimento Interno</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {condominium?.regimentoFilename ? (
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-slate-700 flex-1">
-                  📄 {condominium.regimentoFilename}
-                  {condominium.regimentoUploadedAt && (
-                    <span className="ml-2 text-xs text-slate-400">
-                      (enviado em{' '}
-                      {new Date(condominium.regimentoUploadedAt).toLocaleDateString('pt-BR')})
-                    </span>
-                  )}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={downloadRegimento}
-                >
-                  Baixar PDF
+        {/* Units */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Home className="h-4 w-4 text-muted-foreground" />
+              <h2 className="font-semibold text-foreground">Unidades</h2>
+            </div>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger render={
+                <Button className="gap-2 cursor-pointer" size="sm">
+                  <Plus className="h-3.5 w-3.5" /> Nova unidade
                 </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  disabled={deleteRegimento.isPending}
-                  onClick={() => deleteRegimento.mutate()}
-                >
-                  Remover
-                </Button>
+              } />
+              <DialogContent>
+                <DialogHeader><DialogTitle>Criar unidade</DialogTitle></DialogHeader>
+                <form onSubmit={handleSubmit((d) => createUnit.mutate(d))} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label>Identificador</Label>
+                    <Input placeholder="A-101" {...register('identifier')} />
+                    {errors.identifier && <p className="text-xs text-destructive">{errors.identifier.message}</p>}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Nome do proprietário</Label>
+                    <Input placeholder="João da Silva" {...register('ownerName')} />
+                    {errors.ownerName && <p className="text-xs text-destructive">{errors.ownerName.message}</p>}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>E-mail do morador <span className="text-muted-foreground">(opcional)</span></Label>
+                    <Input type="email" placeholder="morador@exemplo.com" {...register('residentEmail')} />
+                    {errors.residentEmail && <p className="text-xs text-destructive">{errors.residentEmail.message}</p>}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>WhatsApp do morador <span className="text-muted-foreground">(opcional)</span></Label>
+                    <Input placeholder="+5511999998888" {...register('residentPhone')} />
+                  </div>
+                  <Button type="submit" className="w-full cursor-pointer" disabled={createUnit.isPending}>
+                    {createUnit.isPending ? 'Criando...' : 'Criar unidade'}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {loadingUnits && (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {[1,2,3].map(i => <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />)}
+            </div>
+          )}
+
+          {units && units.length === 0 && (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-12 text-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted mb-3">
+                <Home className="h-5 w-5 text-muted-foreground" />
               </div>
-            ) : (
-              <div className="flex items-center gap-3">
-                <p className="text-sm text-slate-500 flex-1">
-                  Nenhum regimento cadastrado. A IA usará análise genérica.
-                </p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="application/pdf"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={uploadRegimento.isPending}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {uploadRegimento.isPending ? 'Enviando...' : 'Enviar PDF'}
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              <p className="font-medium text-foreground text-sm">Nenhuma unidade cadastrada</p>
+              <p className="text-xs text-muted-foreground mt-1">Adicione unidades para registrar infrações.</p>
+            </div>
+          )}
 
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Unidades</h2>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger render={<Button />}>+ Nova unidade</DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Criar unidade</DialogTitle>
-              </DialogHeader>
-              <form
-                onSubmit={handleSubmit((d) => createUnit.mutate(d))}
-                className="space-y-4"
-              >
-                <div className="space-y-1">
-                  <Label>Identificador</Label>
-                  <Input placeholder="A-101" {...register('identifier')} />
-                  {errors.identifier && (
-                    <p className="text-sm text-red-600">{errors.identifier.message}</p>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <Label>Nome do proprietário</Label>
-                  <Input placeholder="João da Silva" {...register('ownerName')} />
-                  {errors.ownerName && (
-                    <p className="text-sm text-red-600">{errors.ownerName.message}</p>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <Label>E-mail do morador (opcional)</Label>
-                  <Input
-                    type="email"
-                    placeholder="morador@exemplo.com"
-                    {...register('residentEmail')}
-                  />
-                  {errors.residentEmail && (
-                    <p className="text-sm text-red-600">{errors.residentEmail.message}</p>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <Label>WhatsApp do morador (opcional)</Label>
-                  <Input
-                    placeholder="+5511999998888"
-                    {...register('residentPhone')}
-                  />
-                  {errors.residentPhone && (
-                    <p className="text-sm text-red-600">{errors.residentPhone.message}</p>
-                  )}
-                </div>
-                <Button type="submit" className="w-full" disabled={createUnit.isPending}>
-                  {createUnit.isPending ? 'Criando...' : 'Criar'}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {loadingUnits && <p className="text-slate-600">Carregando unidades...</p>}
-
-        {units && (
-          <>
-            {units.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center text-slate-500">
-                  Nenhuma unidade cadastrada.
-                </CardContent>
-              </Card>
-            ) : (
+          {units && units.length > 0 && (
+            <>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {units.map((u) => (
-                  <Card
+                  <button
                     key={u.id}
-                    className="cursor-pointer hover:shadow-md transition"
-                    onClick={() =>
-                      router.push(`/condominiums/${condominiumId}/units/${u.id}/infractions`)
-                    }
+                    onClick={() => router.push(`/condominiums/${condominiumId}/units/${u.id}/infractions`)}
+                    className="group text-left rounded-xl border border-border bg-card p-4 transition-all duration-200 hover:border-accent/40 hover:shadow-md cursor-pointer"
                   >
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">{u.identifier}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-sm text-slate-600 space-y-1">
-                      <p className="font-medium">{u.ownerName}</p>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                        <Home className="h-4 w-4 text-primary" />
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                    </div>
+                    <p className="font-semibold text-foreground mb-0.5">{u.identifier}</p>
+                    <p className="text-sm text-muted-foreground mb-2">{u.ownerName}</p>
+                    <div className="space-y-1">
                       {u.residentEmail && (
-                        <p className="text-xs text-slate-500">📧 {u.residentEmail}</p>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Mail className="h-3 w-3" />{u.residentEmail}
+                        </div>
                       )}
                       {u.residentPhone && (
-                        <p className="text-xs text-slate-500">📱 {u.residentPhone}</p>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Phone className="h-3 w-3" />{u.residentPhone}
+                        </div>
                       )}
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </button>
                 ))}
               </div>
-            )}
-            <p className="text-sm text-slate-500">Total: {units.length} unidades</p>
-          </>
-        )}
+              <p className="text-xs text-muted-foreground mt-2">{units.length} unidade(s)</p>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
