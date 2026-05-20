@@ -199,7 +199,7 @@ export default function InfractionsPage() {
             </div>
             <p className="font-medium text-foreground">Nenhuma infração registrada</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Clique em "Nova infração" para registrar a primeira ocorrência.
+              Clique em &quot;Nova infração&quot; para registrar a primeira ocorrência.
             </p>
           </div>
         )}

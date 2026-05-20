@@ -5,6 +5,7 @@ export type JwtClaims = {
   email: string;
   isMaster: boolean;
   companyId: number | null;
+  mustChangePassword?: boolean;
   iat?: number;
   exp?: number;
 };

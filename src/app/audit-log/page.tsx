@@ -19,6 +19,7 @@ const ACTION_LABEL: Record<AuditAction, string> = {
   CONDOMINIUM_CREATED: 'Condomínio criado',
   CONDOMINIUM_DELETED: 'Condomínio removido',
   COMPANY_CREATED: 'Empresa criada',
+  COMPANY_DELETED: 'Empresa removida',
   EMPLOYEE_CREATED: 'Funcionário criado',
   EMPLOYEE_PASSWORD_RESET: 'Senha resetada',
 };
@@ -32,6 +33,7 @@ const ACTION_BADGE: Record<AuditAction, string> = {
   CONDOMINIUM_CREATED:     'bg-cyan-100 text-cyan-800',
   CONDOMINIUM_DELETED:     'bg-red-100 text-red-800',
   COMPANY_CREATED:         'bg-amber-100 text-amber-800',
+  COMPANY_DELETED:         'bg-red-100 text-red-800',
   EMPLOYEE_CREATED:        'bg-orange-100 text-orange-800',
   EMPLOYEE_PASSWORD_RESET: 'bg-slate-100 text-slate-800',
 };
@@ -125,7 +127,7 @@ export default function AuditLogPage() {
         {data && data.data.length > 0 && (
           <div className="rounded-xl border border-border bg-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[700px] text-sm">
                 <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
                     <th className="px-5 py-3 text-left whitespace-nowrap">Data/hora</th>

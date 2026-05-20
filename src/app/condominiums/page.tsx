@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { Building2, MapPin, Hash, Plus, ChevronRight, AlertCircle } from 'lucide-react';
+import { Building2, MapPin, Hash, Plus, ChevronRight, AlertCircle, Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +36,7 @@ export default function CondominiumsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     if (!authStorage.get()) router.replace('/login');
@@ -136,6 +137,19 @@ export default function CondominiumsPage() {
           </Dialog>
         </div>
 
+        {/* Busca */}
+        {(data?.data?.length ?? 0) > 0 && (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="Buscar por nome, CNPJ ou endereço..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        )}
+
         {/* States */}
         {isLoading && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -168,45 +182,75 @@ export default function CondominiumsPage() {
         )}
 
         {data && data.data.length > 0 && (
-          <>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {data.data.map((c) => (
-                <Card
-                  key={c.id}
-                  className="group cursor-pointer border-border bg-card transition-all duration-200 hover:border-accent/30 hover:shadow-md"
-                  onClick={() => router.push(`/condominiums/${c.id}`)}
-                >
-                  <CardContent className="p-5">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                        <Building2 className="h-5 w-5 text-primary" />
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
-                    </div>
-                    <h3 className="font-semibold text-foreground leading-snug mb-3">
-                      {c.name}
-                    </h3>
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Hash className="h-3 w-3" />
-                        {c.cnpj}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3 shrink-0" />
-                        <span className="truncate">{c.address}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Total: {data.total} · Página {data.page} de{' '}
-              {Math.max(1, Math.ceil(data.total / data.limit))}
-            </p>
-          </>
+          <CondominiumGrid
+            condominiums={data.data}
+            search={search}
+            total={data.total}
+            page={data.page}
+            limit={data.limit}
+            onNavigate={(id) => router.push(`/condominiums/${id}`)}
+          />
         )}
       </div>
     </div>
+  );
+}
+
+function CondominiumGrid({
+  condominiums, search, total, page, limit, onNavigate,
+}: {
+  condominiums: import('@/lib/types').Condominium[];
+  search: string;
+  total: number;
+  page: number;
+  limit: number;
+  onNavigate: (id: number) => void;
+}) {
+  const filtered = condominiums.filter((c) => {
+    const q = search.toLowerCase();
+    return c.name.toLowerCase().includes(q) || c.cnpj.includes(q) || c.address.toLowerCase().includes(q);
+  });
+
+  return (
+    <>
+      {search && filtered.length === 0 && (
+        <p className="text-sm text-muted-foreground text-center py-8">
+          Nenhum condomínio encontrado para &quot;{search}&quot;.
+        </p>
+      )}
+      {filtered.length > 0 && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((c) => (
+            <Card
+              key={c.id}
+              className="group cursor-pointer border-border bg-card transition-all duration-200 hover:border-accent/30 hover:shadow-md"
+              onClick={() => onNavigate(c.id)}
+            >
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <Building2 className="h-5 w-5 text-primary" />
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                </div>
+                <h3 className="font-semibold text-foreground leading-snug mb-3">{c.name}</h3>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Hash className="h-3 w-3" />{c.cnpj}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <MapPin className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{c.address}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+      <p className="text-xs text-muted-foreground">
+        Total: {total} · Página {page} de {Math.max(1, Math.ceil(total / limit))}
+      </p>
+    </>
   );
 }

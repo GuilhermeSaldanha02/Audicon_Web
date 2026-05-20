@@ -10,6 +10,7 @@ import {
   ClipboardList,
   LogOut,
   ChevronRight,
+  UserCircle,
 } from 'lucide-react';
 import { authStorage } from '@/lib/auth';
 
@@ -94,9 +95,20 @@ export function BrandHeader({ children }: { children?: React.ReactNode }) {
         </nav>
       </div>
 
-      {/* Right slot: children or logout */}
-      <div className="flex items-center gap-3">
+      {/* Right slot: children, profile, logout */}
+      <div className="flex items-center gap-1">
         {children}
+        <Link
+          href="/profile"
+          className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${
+            pathname === '/profile'
+              ? 'bg-accent/10 text-accent'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+          }`}
+        >
+          <UserCircle className="h-4 w-4" />
+          Perfil
+        </Link>
         <button
           onClick={handleLogout}
           className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive cursor-pointer"

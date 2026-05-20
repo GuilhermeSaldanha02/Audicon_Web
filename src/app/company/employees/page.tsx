@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import {
-  Users, Plus, Mail, RotateCcw, Copy, AlertCircle,
+  Users, Plus, Mail, RotateCcw, Copy, AlertCircle, Search,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +34,7 @@ export default function EmployeesPage() {
   const [successResult, setSuccessResult] = useState<CreatedEmployeeResult | null>(null);
   const [resetTarget, setResetTarget] = useState<Employee | null>(null);
   const [successResetTitle, setSuccessResetTitle] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     const claims = authStorage.getClaims();
@@ -51,8 +52,8 @@ export default function EmployeesPage() {
   });
 
   useEffect(() => {
-    if ((error as any)?.response?.status === 403) {
-      toast.error('Apenas usuários ADMIN de pelo menos um condomínio podem gerenciar funcionários.');
+    if ((error as { response?: { status?: number } })?.response?.status === 403) {
+      toast.error('Você não tem permissão para gerenciar funcionários.');
       router.replace('/condominiums');
     }
   }, [error, router]);
@@ -75,8 +76,8 @@ export default function EmployeesPage() {
       setSuccessResetTitle(`Senha de ${target?.nome ?? 'usuário'} resetada`);
       toast.success('Senha resetada');
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.message ?? 'Erro ao resetar senha';
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao resetar senha';
       toast.error(typeof msg === 'string' ? msg : 'Erro ao resetar senha');
     },
   });
@@ -94,8 +95,8 @@ export default function EmployeesPage() {
       reset();
       queryClient.invalidateQueries({ queryKey: ['company-employees'] });
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.message ?? 'Erro ao criar funcionário';
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao criar funcionário';
       toast.error(typeof msg === 'string' ? msg : 'Erro ao criar funcionário');
     },
   });
@@ -105,6 +106,13 @@ export default function EmployeesPage() {
     navigator.clipboard.writeText(successResult.tempPassword);
     toast.success('Senha copiada');
   }
+
+  const filtered = data
+    ? data.filter((e) => {
+        const q = search.toLowerCase();
+        return e.nome.toLowerCase().includes(q) || e.email.toLowerCase().includes(q);
+      })
+    : [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -144,6 +152,19 @@ export default function EmployeesPage() {
           </Dialog>
         </div>
 
+        {/* Busca */}
+        {(data?.length ?? 0) > 0 && (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="Buscar por nome ou e-mail..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        )}
+
         {isLoading && (
           <div className="space-y-2">
             {[1,2,3].map(i => <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />)}
@@ -160,42 +181,50 @@ export default function EmployeesPage() {
           </div>
         )}
 
-        {data && data.length > 0 && (
+        {data && data.length > 0 && search && filtered.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            Nenhum funcionário encontrado para &quot;{search}&quot;.
+          </p>
+        )}
+
+        {data && filtered.length > 0 && (
           <div className="rounded-xl border border-border bg-card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-5 py-3 text-left">Nome</th>
-                  <th className="px-5 py-3 text-left">E-mail</th>
-                  <th className="px-5 py-3 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((employee) => (
-                  <tr key={employee.id} className="border-t border-border/50 hover:bg-muted/20 transition-colors">
-                    <td className="px-5 py-3 font-medium text-foreground">{employee.nome}</td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Mail className="h-3.5 w-3.5" />
-                        {employee.email}
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 text-right">
-                      <Button
-                        size="sm" variant="outline"
-                        onClick={() => setResetTarget(employee)}
-                        className="gap-1.5 cursor-pointer"
-                      >
-                        <RotateCcw className="h-3.5 w-3.5" />
-                        Resetar senha
-                      </Button>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[500px] text-sm">
+                <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-5 py-3 text-left">Nome</th>
+                    <th className="px-5 py-3 text-left">E-mail</th>
+                    <th className="px-5 py-3 text-right">Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filtered.map((employee) => (
+                    <tr key={employee.id} className="border-t border-border/50 hover:bg-muted/20 transition-colors">
+                      <td className="px-5 py-3 font-medium text-foreground">{employee.nome}</td>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Mail className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{employee.email}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <Button
+                          size="sm" variant="outline"
+                          onClick={() => setResetTarget(employee)}
+                          className="gap-1.5 cursor-pointer"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          Resetar senha
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <div className="px-5 py-3 border-t border-border/50 text-xs text-muted-foreground">
-              {data.length} funcionário(s)
+              {filtered.length} funcionário(s){search && filtered.length !== data.length && ` (de ${data.length})`}
             </div>
           </div>
         )}

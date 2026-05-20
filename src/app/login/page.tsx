@@ -41,10 +41,21 @@ export default function LoginPage() {
       authStorage.set(data.access_token);
       toast.success('Login realizado');
       const claims = authStorage.getClaims();
-      router.push(claims?.isMaster ? '/master/companies' : '/condominiums');
+      if (claims?.mustChangePassword) {
+        router.push('/change-password');
+      } else {
+        router.push(claims?.isMaster ? '/master/companies' : '/condominiums');
+      }
     },
-    onError: () => {
-      toast.error('Credenciais inválidas');
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { status?: number; data?: { message?: unknown } }; code?: string };
+      if (axiosErr?.code === 'ERR_NETWORK' || axiosErr?.code === 'ECONNREFUSED') {
+        toast.error('Não foi possível conectar ao servidor. Verifique se a API está rodando.');
+      } else if (axiosErr?.response?.status === 401) {
+        toast.error('E-mail ou senha incorretos.');
+      } else {
+        toast.error(`Erro ao fazer login (${axiosErr?.response?.status ?? axiosErr?.code ?? 'desconhecido'})`);
+      }
     },
   });
 
