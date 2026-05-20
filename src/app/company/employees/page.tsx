@@ -51,7 +51,7 @@ export default function EmployeesPage() {
   });
 
   useEffect(() => {
-    if ((error as any)?.response?.status === 403) {
+    if ((error as { response?: { status?: number } })?.response?.status === 403) {
       toast.error('Apenas usuários ADMIN de pelo menos um condomínio podem gerenciar funcionários.');
       router.replace('/condominiums');
     }
@@ -75,8 +75,8 @@ export default function EmployeesPage() {
       setSuccessResetTitle(`Senha de ${target?.nome ?? 'usuário'} resetada`);
       toast.success('Senha resetada');
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.message ?? 'Erro ao resetar senha';
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao resetar senha';
       toast.error(typeof msg === 'string' ? msg : 'Erro ao resetar senha');
     },
   });
@@ -94,8 +94,8 @@ export default function EmployeesPage() {
       reset();
       queryClient.invalidateQueries({ queryKey: ['company-employees'] });
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.message ?? 'Erro ao criar funcionário';
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao criar funcionário';
       toast.error(typeof msg === 'string' ? msg : 'Erro ao criar funcionário');
     },
   });

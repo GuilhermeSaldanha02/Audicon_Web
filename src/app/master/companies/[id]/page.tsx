@@ -59,8 +59,8 @@ export default function MasterCompanyDetailPage() {
       setSuccessResult({ ...result, nome: target?.nome ?? `Usuário #${userId}` });
       toast.success('Senha resetada');
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.message ?? 'Erro ao resetar senha';
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao resetar senha';
       toast.error(typeof msg === 'string' ? msg : 'Erro ao resetar senha');
     },
   });

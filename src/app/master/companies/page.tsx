@@ -68,8 +68,8 @@ export default function MasterCompaniesPage() {
       reset();
       queryClient.invalidateQueries({ queryKey: ['master-companies'] });
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.message ?? 'Erro ao criar empresa';
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao criar empresa';
       toast.error(typeof msg === 'string' ? msg : 'Erro ao criar empresa');
     },
   });
