@@ -41,7 +41,11 @@ export default function LoginPage() {
       authStorage.set(data.access_token);
       toast.success('Login realizado');
       const claims = authStorage.getClaims();
-      router.push(claims?.isMaster ? '/master/companies' : '/condominiums');
+      if (claims?.mustChangePassword) {
+        router.push('/change-password');
+      } else {
+        router.push(claims?.isMaster ? '/master/companies' : '/condominiums');
+      }
     },
     onError: (err: unknown) => {
       const axiosErr = err as { response?: { status?: number; data?: { message?: unknown } }; code?: string };

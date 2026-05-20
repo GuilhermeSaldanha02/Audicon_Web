@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import {
   Building2, Plus, Hash, Calendar, Users,
-  ChevronRight, Copy, AlertCircle,
+  ChevronRight, Copy, AlertCircle, Search,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +37,7 @@ export default function MasterCompaniesPage() {
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [successResult, setSuccessResult] = useState<CreatedCompanyResult | null>(null);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     const claims = authStorage.getClaims();
@@ -73,6 +74,11 @@ export default function MasterCompaniesPage() {
       toast.error(typeof msg === 'string' ? msg : 'Erro ao criar empresa');
     },
   });
+
+  const filtered = data?.filter((c) =>
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.cnpj.includes(search),
+  ) ?? [];
 
   function copyPassword() {
     if (!successResult) return;
@@ -141,6 +147,19 @@ export default function MasterCompaniesPage() {
           </Dialog>
         </div>
 
+        {/* Busca */}
+        {(data?.length ?? 0) > 0 && (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="Buscar por nome ou CNPJ..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        )}
+
         {isLoading && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
@@ -159,9 +178,15 @@ export default function MasterCompaniesPage() {
           </div>
         )}
 
-        {data && data.length > 0 && (
+        {data && data.length > 0 && filtered.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            Nenhuma empresa encontrada para &quot;{search}&quot;.
+          </p>
+        )}
+
+        {data && filtered.length > 0 && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {data.map((company) => (
+            {filtered.map((company) => (
               <button
                 key={company.id}
                 onClick={() => router.push(`/master/companies/${company.id}`)}

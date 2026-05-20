@@ -127,7 +127,7 @@ export default function AuditLogPage() {
         {data && data.data.length > 0 && (
           <div className="rounded-xl border border-border bg-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[700px] text-sm">
                 <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
                     <th className="px-5 py-3 text-left whitespace-nowrap">Data/hora</th>

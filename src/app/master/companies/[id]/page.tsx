@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Building2, Hash, Calendar, Users,
-  Mail, RotateCcw, AlertCircle, Copy, Plus, Trash2, AlertTriangle,
+  Mail, RotateCcw, AlertCircle, Copy, Plus, Trash2, AlertTriangle, Pencil,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,12 @@ const createSchema = z.object({
 });
 type CreateForm = z.infer<typeof createSchema>;
 
+const editCompanySchema = z.object({
+  name: z.string().min(1, 'Nome obrigatório').max(160),
+  cnpj: z.string().min(14, 'CNPJ inválido').max(18),
+});
+type EditCompanyForm = z.infer<typeof editCompanySchema>;
+
 export default function MasterCompanyDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -34,6 +40,7 @@ export default function MasterCompanyDetailPage() {
   const [resetTarget, setResetTarget] = useState<Employee | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [successResult, setSuccessResult] = useState<
     (CreatedEmployeeResult & { nome: string; title: string }) | null
   >(null);
@@ -60,8 +67,12 @@ export default function MasterCompanyDetailPage() {
     },
   });
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<CreateForm>({
+  const { register: registerCreate, handleSubmit: handleCreate, reset: resetCreate, formState: { errors: createErrors } } = useForm<CreateForm>({
     resolver: zodResolver(createSchema),
+  });
+
+  const { register: registerEdit, handleSubmit: handleEdit, reset: resetEdit, formState: { errors: editErrors } } = useForm<EditCompanyForm>({
+    resolver: zodResolver(editCompanySchema),
   });
 
   const createMutation = useMutation({
@@ -74,13 +85,30 @@ export default function MasterCompanyDetailPage() {
     onSuccess: (result) => {
       toast.success('Usuário criado');
       setCreateOpen(false);
-      reset();
+      resetCreate();
       setSuccessResult({ ...result, nome: result.nome, title: 'Usuário criado com sucesso' });
       queryClient.invalidateQueries({ queryKey: ['master-company-users', companyId] });
     },
     onError: (err: unknown) => {
       const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao criar usuário';
       toast.error(typeof msg === 'string' ? msg : 'Erro ao criar usuário');
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (form: EditCompanyForm) => {
+      const res = await api.patch<ApiEnvelope<Company>>(`/companies/${companyId}`, form);
+      return res.data.data;
+    },
+    onSuccess: () => {
+      toast.success('Empresa atualizada');
+      setEditOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['master-company', companyId] });
+      queryClient.invalidateQueries({ queryKey: ['master-companies'] });
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao atualizar empresa';
+      toast.error(typeof msg === 'string' ? msg : 'Erro ao atualizar empresa');
     },
   });
 
@@ -122,6 +150,13 @@ export default function MasterCompanyDetailPage() {
     },
   });
 
+  function openEdit() {
+    if (company) {
+      resetEdit({ name: company.name, cnpj: company.cnpj });
+    }
+    setEditOpen(true);
+  }
+
   function copyPassword() {
     if (!successResult) return;
     navigator.clipboard.writeText(successResult.tempPassword);
@@ -142,12 +177,12 @@ export default function MasterCompanyDetailPage() {
           >
             <ArrowLeft className="h-3.5 w-3.5" /> Voltar
           </Button>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-1">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 shrink-0">
                 <Building2 className="h-5 w-5 text-primary" />
               </div>
-              <h1 className="text-2xl font-bold text-foreground">
+              <h1 className="text-2xl font-bold text-foreground truncate">
                 {company?.name ?? 'Carregando...'}
               </h1>
             </div>
@@ -164,13 +199,22 @@ export default function MasterCompanyDetailPage() {
             )}
           </div>
           {company && (
-            <Button
-              variant="outline" size="sm"
-              onClick={() => setDeleteOpen(true)}
-              className="gap-1.5 cursor-pointer text-destructive hover:bg-destructive/10 hover:text-destructive mt-1 shrink-0"
-            >
-              <Trash2 className="h-3.5 w-3.5" /> Excluir empresa
-            </Button>
+            <div className="flex items-center gap-2 mt-1 shrink-0">
+              <Button
+                variant="outline" size="sm"
+                onClick={openEdit}
+                className="gap-1.5 cursor-pointer"
+              >
+                <Pencil className="h-3.5 w-3.5" /> Editar
+              </Button>
+              <Button
+                variant="outline" size="sm"
+                onClick={() => setDeleteOpen(true)}
+                className="gap-1.5 cursor-pointer text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Excluir
+              </Button>
+            </div>
           )}
         </div>
 
@@ -194,16 +238,16 @@ export default function MasterCompanyDetailPage() {
               } />
               <DialogContent>
                 <DialogHeader><DialogTitle>Criar usuário para {company?.name}</DialogTitle></DialogHeader>
-                <form onSubmit={handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
+                <form onSubmit={handleCreate((d) => createMutation.mutate(d))} className="space-y-4">
                   <div className="space-y-1.5">
                     <Label>Nome</Label>
-                    <Input placeholder="Maria Souza" {...register('nome')} />
-                    {errors.nome && <p className="text-xs text-destructive">{errors.nome.message}</p>}
+                    <Input placeholder="Maria Souza" {...registerCreate('nome')} />
+                    {createErrors.nome && <p className="text-xs text-destructive">{createErrors.nome.message}</p>}
                   </div>
                   <div className="space-y-1.5">
                     <Label>E-mail</Label>
-                    <Input type="email" placeholder="maria@empresa.com" {...register('email')} />
-                    {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+                    <Input type="email" placeholder="maria@empresa.com" {...registerCreate('email')} />
+                    {createErrors.email && <p className="text-xs text-destructive">{createErrors.email.message}</p>}
                   </div>
                   <Button type="submit" className="w-full cursor-pointer" disabled={createMutation.isPending}>
                     {createMutation.isPending ? 'Criando...' : 'Criar usuário'}
@@ -231,36 +275,38 @@ export default function MasterCompanyDetailPage() {
 
           {users && users.length > 0 && (
             <div className="rounded-xl border border-border bg-card overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
-                  <tr>
-                    <th className="px-5 py-3 text-left">Nome</th>
-                    <th className="px-5 py-3 text-left">E-mail</th>
-                    <th className="px-5 py-3 text-right">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((u) => (
-                    <tr key={u.id} className="border-t border-border/50 hover:bg-muted/20 transition-colors">
-                      <td className="px-5 py-3 font-medium text-foreground">{u.nome}</td>
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <Mail className="h-3.5 w-3.5" />{u.email}
-                        </div>
-                      </td>
-                      <td className="px-5 py-3 text-right">
-                        <Button
-                          size="sm" variant="outline"
-                          onClick={() => setResetTarget(u)}
-                          className="gap-1.5 cursor-pointer"
-                        >
-                          <RotateCcw className="h-3.5 w-3.5" /> Resetar senha
-                        </Button>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                      <th className="px-5 py-3 text-left">Nome</th>
+                      <th className="px-5 py-3 text-left">E-mail</th>
+                      <th className="px-5 py-3 text-right">Ações</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {users.map((u) => (
+                      <tr key={u.id} className="border-t border-border/50 hover:bg-muted/20 transition-colors">
+                        <td className="px-5 py-3 font-medium text-foreground">{u.nome}</td>
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Mail className="h-3.5 w-3.5" />{u.email}
+                          </div>
+                        </td>
+                        <td className="px-5 py-3 text-right">
+                          <Button
+                            size="sm" variant="outline"
+                            onClick={() => setResetTarget(u)}
+                            className="gap-1.5 cursor-pointer"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" /> Resetar senha
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               <div className="px-5 py-3 border-t border-border/50 text-xs text-muted-foreground">
                 {users.length} usuário(s)
               </div>
@@ -268,6 +314,33 @@ export default function MasterCompanyDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Edit company dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar empresa</DialogTitle></DialogHeader>
+          <form onSubmit={handleEdit((d) => updateMutation.mutate(d))} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Nome da empresa</Label>
+              <Input placeholder="Administradora Exemplo Ltda" {...registerEdit('name')} />
+              {editErrors.name && <p className="text-xs text-destructive">{editErrors.name.message}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label>CNPJ</Label>
+              <Input placeholder="12.345.678/0001-90" {...registerEdit('cnpj')} />
+              {editErrors.cnpj && <p className="text-xs text-destructive">{editErrors.cnpj.message}</p>}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setEditOpen(false)} className="cursor-pointer">
+                Cancelar
+              </Button>
+              <Button type="submit" className="cursor-pointer" disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? 'Salvando...' : 'Salvar'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirm reset */}
       <Dialog open={!!resetTarget} onOpenChange={(o) => !o && setResetTarget(null)}>
