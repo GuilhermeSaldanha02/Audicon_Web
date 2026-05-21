@@ -18,6 +18,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import { api, ApiEnvelope } from '@/lib/api';
+import { authStorage } from '@/lib/auth';
 import { Condominium, Unit } from '@/lib/types';
 import { BrandHeader } from '@/components/brand-header';
 
@@ -49,6 +50,7 @@ export default function CondominiumDetailPage() {
   const [editCondoOpen, setEditCondoOpen] = useState(false);
   const [editUnit, setEditUnit] = useState<Unit | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMaster = !!authStorage.getClaims()?.isMaster;
 
   const { data: condominium, isLoading: loadingCondominium } = useQuery({
     queryKey: ['condominium', condominiumId],
@@ -256,13 +258,15 @@ export default function CondominiumDetailPage() {
               >
                 <Pencil className="h-3.5 w-3.5" /> Editar
               </Button>
-              <Button
-                variant="outline" size="sm"
-                onClick={() => setDeleteCondoOpen(true)}
-                className="gap-1.5 cursor-pointer text-destructive hover:bg-destructive/10 hover:text-destructive"
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Excluir
-              </Button>
+              {isMaster && (
+                <Button
+                  variant="outline" size="sm"
+                  onClick={() => setDeleteCondoOpen(true)}
+                  className="gap-1.5 cursor-pointer text-destructive hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Excluir
+                </Button>
+              )}
             </div>
           )}
         </div>

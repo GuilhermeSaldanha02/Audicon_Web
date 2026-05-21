@@ -1,41 +1,18 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { toast } from 'sonner';
-import { Building2, MapPin, Hash, Plus, ChevronRight, AlertCircle, Search } from 'lucide-react';
+import { Building2, MapPin, Hash, ChevronRight, AlertCircle, Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { api, ApiEnvelope, PaginatedResult } from '@/lib/api';
 import { authStorage } from '@/lib/auth';
 import { Condominium } from '@/lib/types';
 import { BrandHeader } from '@/components/brand-header';
 
-const createSchema = z.object({
-  name: z.string().min(1, 'Nome obrigatório'),
-  cnpj: z.string().min(14, 'CNPJ inválido').max(18),
-  address: z.string().min(1, 'Endereço obrigatório'),
-});
-
-type CreateForm = z.infer<typeof createSchema>;
-
 export default function CondominiumsPage() {
   const router = useRouter();
-  const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -52,89 +29,17 @@ export default function CondominiumsPage() {
     },
   });
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<CreateForm>({ resolver: zodResolver(createSchema) });
-
-  const createMutation = useMutation({
-    mutationFn: async (form: CreateForm) => {
-      const res = await api.post<ApiEnvelope<Condominium>>('/condominiums', form);
-      return res.data.data;
-    },
-    onSuccess: () => {
-      toast.success('Condomínio criado');
-      queryClient.invalidateQueries({ queryKey: ['condominiums'] });
-      setOpen(false);
-      reset();
-    },
-    onError: () => toast.error('Erro ao criar condomínio'),
-  });
-
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
         <BrandHeader />
 
         {/* Page header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Meus condomínios</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Gerencie os condomínios vinculados à sua conta
-            </p>
-          </div>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger render={
-              <Button className="gap-2 cursor-pointer">
-                <Plus className="h-4 w-4" />
-                Novo condomínio
-              </Button>
-            } />
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Criar condomínio</DialogTitle>
-              </DialogHeader>
-              <form
-                onSubmit={handleSubmit((d) => createMutation.mutate(d))}
-                className="space-y-4"
-              >
-                <div className="space-y-1.5">
-                  <Label>Nome</Label>
-                  <Input placeholder="Condomínio Jardim das Flores" {...register('name')} />
-                  {errors.name && (
-                    <p className="text-xs text-destructive">{errors.name.message}</p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label>CNPJ</Label>
-                  <Input placeholder="12.345.678/0001-95" {...register('cnpj')} />
-                  {errors.cnpj && (
-                    <p className="text-xs text-destructive">{errors.cnpj.message}</p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Endereço</Label>
-                  <Input
-                    placeholder="Rua das Acácias, 100 — São Paulo, SP"
-                    {...register('address')}
-                  />
-                  {errors.address && (
-                    <p className="text-xs text-destructive">{errors.address.message}</p>
-                  )}
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full cursor-pointer"
-                  disabled={createMutation.isPending}
-                >
-                  {createMutation.isPending ? 'Criando...' : 'Criar condomínio'}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Meus condomínios</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Condomínios vinculados à sua conta
+          </p>
         </div>
 
         {/* Busca */}
@@ -199,7 +104,7 @@ export default function CondominiumsPage() {
 function CondominiumGrid({
   condominiums, search, total, page, limit, onNavigate,
 }: {
-  condominiums: import('@/lib/types').Condominium[];
+  condominiums: Condominium[];
   search: string;
   total: number;
   page: number;
