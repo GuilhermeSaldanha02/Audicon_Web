@@ -5,7 +5,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
   Building2,
-  Users,
   LayoutDashboard,
   ClipboardList,
   LogOut,
@@ -35,9 +34,6 @@ export function BrandHeader({ children }: { children?: React.ReactNode }) {
   const navItems: NavItem[] = [
     ...(isMaster
       ? [{ href: '/master/companies', label: 'Empresas', icon: Building2 }]
-      : []),
-    ...(hasCompany
-      ? [{ href: '/company/employees', label: 'Funcionários', icon: Users }]
       : []),
     ...(!isMaster
       ? [{ href: '/condominiums', label: 'Condomínios', icon: Building2 }]
