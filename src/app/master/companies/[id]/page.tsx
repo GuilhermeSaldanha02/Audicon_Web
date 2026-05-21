@@ -17,7 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { api, ApiEnvelope } from '@/lib/api';
 import { authStorage } from '@/lib/auth';
-import { Company, Employee, CreatedEmployeeResult } from '@/lib/types';
+import { Company, Employee, CreatedEmployeeResult, Condominium } from '@/lib/types';
 import { BrandHeader } from '@/components/brand-header';
 
 const createSchema = z.object({
@@ -32,6 +32,13 @@ const editCompanySchema = z.object({
 });
 type EditCompanyForm = z.infer<typeof editCompanySchema>;
 
+const condoSchema = z.object({
+  name: z.string().min(1, 'Nome obrigatório'),
+  cnpj: z.string().min(14, 'CNPJ inválido').max(18),
+  address: z.string().min(1, 'Endereço obrigatório'),
+});
+type CondoForm = z.infer<typeof condoSchema>;
+
 export default function MasterCompanyDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -41,6 +48,9 @@ export default function MasterCompanyDetailPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [condoOpen, setCondoOpen] = useState(false);
+  const [assignTarget, setAssignTarget] = useState<Condominium | null>(null);
+  const [assignEmail, setAssignEmail] = useState('');
   const [successResult, setSuccessResult] = useState<
     (CreatedEmployeeResult & { nome: string; title: string }) | null
   >(null);
@@ -73,6 +83,18 @@ export default function MasterCompanyDetailPage() {
 
   const { register: registerEdit, handleSubmit: handleEdit, reset: resetEdit, formState: { errors: editErrors } } = useForm<EditCompanyForm>({
     resolver: zodResolver(editCompanySchema),
+  });
+
+  const { register: registerCondo, handleSubmit: handleCondo, reset: resetCondo, formState: { errors: condoErrors } } = useForm<CondoForm>({
+    resolver: zodResolver(condoSchema),
+  });
+
+  const { data: condominiums } = useQuery({
+    queryKey: ['master-company-condominiums', companyId],
+    queryFn: async () => {
+      const res = await api.get<ApiEnvelope<Condominium[]>>(`/companies/${companyId}/condominiums`);
+      return res.data.data;
+    },
   });
 
   const createMutation = useMutation({
@@ -147,6 +169,44 @@ export default function MasterCompanyDetailPage() {
     onError: (err: unknown) => {
       const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao resetar senha';
       toast.error(typeof msg === 'string' ? msg : 'Erro ao resetar senha');
+    },
+  });
+
+  const createCondoMutation = useMutation({
+    mutationFn: async (form: CondoForm) => {
+      const res = await api.post<ApiEnvelope<Condominium>>('/condominiums', {
+        ...form,
+        companyId: Number(companyId),
+      });
+      return res.data.data;
+    },
+    onSuccess: () => {
+      toast.success('Condomínio criado');
+      setCondoOpen(false);
+      resetCondo();
+      queryClient.invalidateQueries({ queryKey: ['master-company-condominiums', companyId] });
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao criar condomínio';
+      toast.error(typeof msg === 'string' ? msg : 'Erro ao criar condomínio');
+    },
+  });
+
+  const assignAdminMutation = useMutation({
+    mutationFn: async (vars: { condominiumId: number; email: string }) => {
+      await api.post(`/condominiums/${vars.condominiumId}/members`, {
+        email: vars.email,
+        role: 'ADMIN',
+      });
+    },
+    onSuccess: () => {
+      toast.success('Administrador atribuído');
+      setAssignTarget(null);
+      setAssignEmail('');
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao atribuir administrador';
+      toast.error(typeof msg === 'string' ? msg : 'Erro ao atribuir administrador');
     },
   });
 
@@ -313,6 +373,99 @@ export default function MasterCompanyDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Condomínios */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <h2 className="font-semibold text-foreground">Condomínios</h2>
+              {condominiums && (
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                  {condominiums.length}
+                </span>
+              )}
+            </div>
+            <Dialog open={condoOpen} onOpenChange={setCondoOpen}>
+              <DialogTrigger render={
+                <Button size="sm" className="gap-1.5 cursor-pointer">
+                  <Plus className="h-3.5 w-3.5" /> Novo condomínio
+                </Button>
+              } />
+              <DialogContent>
+                <DialogHeader><DialogTitle>Criar condomínio para {company?.name}</DialogTitle></DialogHeader>
+                <form onSubmit={handleCondo((d) => createCondoMutation.mutate(d))} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label>Nome</Label>
+                    <Input placeholder="Condomínio Jardim das Flores" {...registerCondo('name')} />
+                    {condoErrors.name && <p className="text-xs text-destructive">{condoErrors.name.message}</p>}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>CNPJ</Label>
+                    <Input placeholder="12.345.678/0001-95" {...registerCondo('cnpj')} />
+                    {condoErrors.cnpj && <p className="text-xs text-destructive">{condoErrors.cnpj.message}</p>}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Endereço</Label>
+                    <Input placeholder="Rua das Acácias, 100 — São Paulo, SP" {...registerCondo('address')} />
+                    {condoErrors.address && <p className="text-xs text-destructive">{condoErrors.address.message}</p>}
+                  </div>
+                  <Button type="submit" className="w-full cursor-pointer" disabled={createCondoMutation.isPending}>
+                    {createCondoMutation.isPending ? 'Criando...' : 'Criar condomínio'}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {(!condominiums || condominiums.length === 0) && (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-12 text-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted mb-3">
+                <Building2 className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <p className="font-medium text-foreground text-sm">Nenhum condomínio cadastrado</p>
+              <p className="text-xs text-muted-foreground mt-1">Crie um condomínio e atribua um administrador da empresa.</p>
+            </div>
+          )}
+
+          {condominiums && condominiums.length > 0 && (
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                      <th className="px-5 py-3 text-left">Nome</th>
+                      <th className="px-5 py-3 text-left">CNPJ</th>
+                      <th className="px-5 py-3 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {condominiums.map((c) => (
+                      <tr key={c.id} className="border-t border-border/50 hover:bg-muted/20 transition-colors">
+                        <td className="px-5 py-3 font-medium text-foreground">{c.name}</td>
+                        <td className="px-5 py-3 text-muted-foreground">
+                          <span className="flex items-center gap-1.5"><Hash className="h-3.5 w-3.5" />{c.cnpj}</span>
+                        </td>
+                        <td className="px-5 py-3 text-right">
+                          <Button
+                            size="sm" variant="outline"
+                            onClick={() => { setAssignTarget(c); setAssignEmail(''); }}
+                            className="gap-1.5 cursor-pointer"
+                          >
+                            <Users className="h-3.5 w-3.5" /> Atribuir admin
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-5 py-3 border-t border-border/50 text-xs text-muted-foreground">
+                {condominiums.length} condomínio(s)
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Edit company dialog */}
@@ -339,6 +492,55 @@ export default function MasterCompanyDetailPage() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign admin to condominium */}
+      <Dialog open={!!assignTarget} onOpenChange={(o) => !o && setAssignTarget(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Atribuir administrador</DialogTitle></DialogHeader>
+          {assignTarget && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Selecione um usuário da empresa para administrar{' '}
+                <strong className="text-foreground">{assignTarget.name}</strong>.
+              </p>
+              {(!users || users.length === 0) ? (
+                <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
+                  <AlertCircle className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
+                  <p className="text-xs text-amber-700">
+                    Nenhum usuário cadastrado. Crie um usuário para a empresa antes de atribuir.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <Label>Usuário</Label>
+                  <select
+                    value={assignEmail}
+                    onChange={(e) => setAssignEmail(e.target.value)}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm cursor-pointer"
+                  >
+                    <option value="">Selecione um usuário...</option>
+                    {users.map((u) => (
+                      <option key={u.id} value={u.email}>{u.nome} — {u.email}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setAssignTarget(null)} disabled={assignAdminMutation.isPending} className="cursor-pointer">
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => assignAdminMutation.mutate({ condominiumId: assignTarget.id, email: assignEmail })}
+                  disabled={assignAdminMutation.isPending || !assignEmail}
+                  className="cursor-pointer"
+                >
+                  {assignAdminMutation.isPending ? 'Atribuindo...' : 'Atribuir'}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
