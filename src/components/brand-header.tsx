@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import {
   Building2,
   LayoutDashboard,
@@ -11,7 +10,7 @@ import {
   ChevronRight,
   UserCircle,
 } from 'lucide-react';
-import { authStorage } from '@/lib/auth';
+import { useAuth } from '@/lib/auth-context';
 
 interface NavItem {
   href: string;
@@ -22,14 +21,9 @@ interface NavItem {
 export function BrandHeader({ children }: { children?: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [isMaster, setIsMaster] = useState(false);
-  const [hasCompany, setHasCompany] = useState(false);
-
-  useEffect(() => {
-    const claims = authStorage.getClaims();
-    setIsMaster(!!claims?.isMaster);
-    setHasCompany(!claims?.isMaster && !!claims?.companyId);
-  }, []);
+  const { claims, logout } = useAuth();
+  const isMaster = !!claims?.isMaster;
+  const hasCompany = !claims?.isMaster && !!claims?.companyId;
 
   const navItems: NavItem[] = [
     ...(isMaster
@@ -47,7 +41,7 @@ export function BrandHeader({ children }: { children?: React.ReactNode }) {
   ];
 
   function handleLogout() {
-    authStorage.clear();
+    logout();
     router.replace('/login');
   }
 

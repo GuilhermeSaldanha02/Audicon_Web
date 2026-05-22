@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -18,9 +18,19 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import { api, ApiEnvelope } from '@/lib/api';
-import { authStorage } from '@/lib/auth';
+import { useApiMutation } from '@/hooks/use-api-mutation';
+import { useAuth } from '@/lib/auth-context';
 import { Condominium, Unit } from '@/lib/types';
 import { BrandHeader } from '@/components/brand-header';
+import { RequireAuth } from '@/components/require-auth';
+
+export default function CondominiumDetailPage() {
+  return (
+    <RequireAuth>
+      <CondominiumDetailContent />
+    </RequireAuth>
+  );
+}
 
 const unitSchema = z.object({
   identifier: z.string().min(1, 'Identificador obrigatório'),
@@ -40,7 +50,7 @@ const condoSchema = z.object({
 });
 type CondoForm = z.infer<typeof condoSchema>;
 
-export default function CondominiumDetailPage() {
+function CondominiumDetailContent() {
   const router = useRouter();
   const params = useParams();
   const condominiumId = params.id as string;
@@ -50,7 +60,7 @@ export default function CondominiumDetailPage() {
   const [editCondoOpen, setEditCondoOpen] = useState(false);
   const [editUnit, setEditUnit] = useState<Unit | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const isMaster = !!authStorage.getClaims()?.isMaster;
+  const isMaster = !!useAuth().claims?.isMaster;
 
   const { data: condominium, isLoading: loadingCondominium } = useQuery({
     queryKey: ['condominium', condominiumId],
@@ -82,7 +92,8 @@ export default function CondominiumDetailPage() {
     formState: { errors: editUnitErrors },
   } = useForm<UnitForm>({ resolver: zodResolver(unitSchema) });
 
-  const createUnit = useMutation({
+  const createUnit = useApiMutation({
+    errorMessage: 'Erro ao criar unidade',
     mutationFn: async (form: UnitForm) => {
       const payload = {
         identifier: form.identifier,
@@ -99,10 +110,10 @@ export default function CondominiumDetailPage() {
       setOpen(false);
       reset();
     },
-    onError: () => toast.error('Erro ao criar unidade'),
   });
 
-  const updateCondo = useMutation({
+  const updateCondo = useApiMutation({
+    errorMessage: 'Erro ao atualizar condomínio',
     mutationFn: async (form: CondoForm) => {
       const res = await api.patch<ApiEnvelope<Condominium>>(`/condominiums/${condominiumId}`, form);
       return res.data.data;
@@ -113,13 +124,10 @@ export default function CondominiumDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['condominiums'] });
       setEditCondoOpen(false);
     },
-    onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao atualizar condomínio';
-      toast.error(typeof msg === 'string' ? msg : 'Erro ao atualizar condomínio');
-    },
   });
 
-  const updateUnit = useMutation({
+  const updateUnit = useApiMutation({
+    errorMessage: 'Erro ao atualizar unidade',
     mutationFn: async (form: UnitForm & { id: number }) => {
       const { id, ...payload } = form;
       const res = await api.patch<ApiEnvelope<Unit>>(
@@ -133,10 +141,10 @@ export default function CondominiumDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['units', condominiumId] });
       setEditUnit(null);
     },
-    onError: () => toast.error('Erro ao atualizar unidade'),
   });
 
-  const uploadRegimento = useMutation({
+  const uploadRegimento = useApiMutation({
+    errorMessage: 'Erro ao enviar regimento',
     mutationFn: async (file: File) => {
       const form = new FormData();
       form.append('file', file);
@@ -148,10 +156,10 @@ export default function CondominiumDetailPage() {
       toast.success('Regimento enviado com sucesso');
       queryClient.invalidateQueries({ queryKey: ['condominium', condominiumId] });
     },
-    onError: () => toast.error('Erro ao enviar regimento'),
   });
 
-  const deleteRegimento = useMutation({
+  const deleteRegimento = useApiMutation({
+    errorMessage: 'Erro ao remover regimento',
     mutationFn: async () => {
       await api.delete(`/condominiums/${condominiumId}/regimento`);
     },
@@ -159,10 +167,10 @@ export default function CondominiumDetailPage() {
       toast.success('Regimento removido');
       queryClient.invalidateQueries({ queryKey: ['condominium', condominiumId] });
     },
-    onError: () => toast.error('Erro ao remover regimento'),
   });
 
-  const deleteCondominium = useMutation({
+  const deleteCondominium = useApiMutation({
+    errorMessage: 'Erro ao remover condomínio',
     mutationFn: async () => {
       await api.delete(`/condominiums/${condominiumId}`);
     },
@@ -170,7 +178,6 @@ export default function CondominiumDetailPage() {
       toast.success('Condomínio removido');
       router.push('/condominiums');
     },
-    onError: () => toast.error('Erro ao remover condomínio'),
   });
 
   async function downloadRegimento() {

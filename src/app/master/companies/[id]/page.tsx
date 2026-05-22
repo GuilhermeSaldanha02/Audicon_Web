@@ -1,8 +1,8 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -16,9 +16,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { api, ApiEnvelope } from '@/lib/api';
-import { authStorage } from '@/lib/auth';
+import { useApiMutation } from '@/hooks/use-api-mutation';
 import { Company, Employee, CreatedEmployeeResult, Condominium } from '@/lib/types';
 import { BrandHeader } from '@/components/brand-header';
+import { RequireAuth } from '@/components/require-auth';
+
+export default function MasterCompanyDetailPage() {
+  return (
+    <RequireAuth role="master">
+      <MasterCompanyDetailContent />
+    </RequireAuth>
+  );
+}
 
 const createSchema = z.object({
   nome: z.string().min(1, 'Nome obrigatório'),
@@ -39,7 +48,7 @@ const condoSchema = z.object({
 });
 type CondoForm = z.infer<typeof condoSchema>;
 
-export default function MasterCompanyDetailPage() {
+function MasterCompanyDetailContent() {
   const router = useRouter();
   const params = useParams();
   const companyId = params.id as string;
@@ -54,12 +63,6 @@ export default function MasterCompanyDetailPage() {
   const [successResult, setSuccessResult] = useState<
     (CreatedEmployeeResult & { nome: string; title: string }) | null
   >(null);
-
-  useEffect(() => {
-    const claims = authStorage.getClaims();
-    if (!claims) { router.replace('/login'); return; }
-    if (!claims.isMaster) router.replace('/condominiums');
-  }, [router]);
 
   const { data: company } = useQuery({
     queryKey: ['master-company', companyId],
@@ -97,7 +100,8 @@ export default function MasterCompanyDetailPage() {
     },
   });
 
-  const createMutation = useMutation({
+  const createMutation = useApiMutation({
+    errorMessage: 'Erro ao criar usuário',
     mutationFn: async (form: CreateForm) => {
       const res = await api.post<ApiEnvelope<CreatedEmployeeResult>>(
         `/companies/${companyId}/users`, form,
@@ -111,13 +115,10 @@ export default function MasterCompanyDetailPage() {
       setSuccessResult({ ...result, nome: result.nome, title: 'Usuário criado com sucesso' });
       queryClient.invalidateQueries({ queryKey: ['master-company-users', companyId] });
     },
-    onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao criar usuário';
-      toast.error(typeof msg === 'string' ? msg : 'Erro ao criar usuário');
-    },
   });
 
-  const updateMutation = useMutation({
+  const updateMutation = useApiMutation({
+    errorMessage: 'Erro ao atualizar empresa',
     mutationFn: async (form: EditCompanyForm) => {
       const res = await api.patch<ApiEnvelope<Company>>(`/companies/${companyId}`, form);
       return res.data.data;
@@ -128,13 +129,10 @@ export default function MasterCompanyDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['master-company', companyId] });
       queryClient.invalidateQueries({ queryKey: ['master-companies'] });
     },
-    onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao atualizar empresa';
-      toast.error(typeof msg === 'string' ? msg : 'Erro ao atualizar empresa');
-    },
   });
 
-  const deleteMutation = useMutation({
+  const deleteMutation = useApiMutation({
+    errorMessage: 'Erro ao excluir empresa',
     mutationFn: async () => {
       await api.delete(`/companies/${companyId}`);
     },
@@ -143,13 +141,10 @@ export default function MasterCompanyDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['master-companies'] });
       router.push('/master/companies');
     },
-    onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao excluir empresa';
-      toast.error(typeof msg === 'string' ? msg : 'Erro ao excluir empresa');
-    },
   });
 
-  const resetMutation = useMutation({
+  const resetMutation = useApiMutation({
+    errorMessage: 'Erro ao resetar senha',
     mutationFn: async (userId: number) => {
       const res = await api.post<ApiEnvelope<CreatedEmployeeResult>>(
         `/companies/${companyId}/users/${userId}/reset-password`,
@@ -166,13 +161,10 @@ export default function MasterCompanyDetailPage() {
       });
       toast.success('Senha resetada');
     },
-    onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao resetar senha';
-      toast.error(typeof msg === 'string' ? msg : 'Erro ao resetar senha');
-    },
   });
 
-  const createCondoMutation = useMutation({
+  const createCondoMutation = useApiMutation({
+    errorMessage: 'Erro ao criar condomínio',
     mutationFn: async (form: CondoForm) => {
       const res = await api.post<ApiEnvelope<Condominium>>('/condominiums', {
         ...form,
@@ -186,13 +178,10 @@ export default function MasterCompanyDetailPage() {
       resetCondo();
       queryClient.invalidateQueries({ queryKey: ['master-company-condominiums', companyId] });
     },
-    onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao criar condomínio';
-      toast.error(typeof msg === 'string' ? msg : 'Erro ao criar condomínio');
-    },
   });
 
-  const assignAdminMutation = useMutation({
+  const assignAdminMutation = useApiMutation({
+    errorMessage: 'Erro ao atribuir administrador',
     mutationFn: async (vars: { condominiumId: number; email: string }) => {
       await api.post(`/condominiums/${vars.condominiumId}/members`, {
         email: vars.email,
@@ -203,10 +192,6 @@ export default function MasterCompanyDetailPage() {
       toast.success('Administrador atribuído');
       setAssignTarget(null);
       setAssignEmail('');
-    },
-    onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao atribuir administrador';
-      toast.error(typeof msg === 'string' ? msg : 'Erro ao atribuir administrador');
     },
   });
 

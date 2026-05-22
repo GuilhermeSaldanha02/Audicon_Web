@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -14,10 +14,12 @@ import {
 } from '@/components/ui/dialog';
 import { api, ApiEnvelope } from '@/lib/api';
 import { authStorage } from '@/lib/auth';
+import { useApiMutation } from '@/hooks/use-api-mutation';
 import { Infraction, InfractionStatus } from '@/lib/types';
 import { InfractionImages } from '@/components/infraction-images';
 import { NotificationHistory } from '@/components/notification-history';
 import { BrandHeader } from '@/components/brand-header';
+import { RequireAuth } from '@/components/require-auth';
 
 const STATUS_LABEL: Record<InfractionStatus, string> = {
   pending: 'Pendente',
@@ -34,6 +36,14 @@ const STATUS_BADGE: Record<InfractionStatus, string> = {
 };
 
 export default function InfractionDetailPage() {
+  return (
+    <RequireAuth>
+      <InfractionDetailContent />
+    </RequireAuth>
+  );
+}
+
+function InfractionDetailContent() {
   const router = useRouter();
   const params = useParams();
   const condominiumId = params.id as string;
@@ -52,7 +62,8 @@ export default function InfractionDetailPage() {
     },
   });
 
-  const analyzeMutation = useMutation({
+  const analyzeMutation = useApiMutation({
+    errorMessage: 'Erro ao analisar infração',
     mutationFn: async () => {
       const res = await api.post<ApiEnvelope<Infraction>>(`/infractions/${infractionId}/analyze`);
       return res.data.data;
@@ -62,10 +73,10 @@ export default function InfractionDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['infraction', infractionId] });
       queryClient.invalidateQueries({ queryKey: ['infractions', unitId] });
     },
-    onError: () => toast.error('Erro ao analisar infração'),
   });
 
-  const approveMutation = useMutation({
+  const approveMutation = useApiMutation({
+    errorMessage: 'Erro ao aprovar infração',
     mutationFn: async () => {
       const res = await api.patch<ApiEnvelope<Infraction>>(
         `/infractions/${infractionId}/approve`, {},
@@ -78,10 +89,10 @@ export default function InfractionDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['infraction', infractionId] });
       queryClient.invalidateQueries({ queryKey: ['infractions', unitId] });
     },
-    onError: () => toast.error('Erro ao aprovar infração'),
   });
 
-  const sendMutation = useMutation({
+  const sendMutation = useApiMutation({
+    errorMessage: 'Erro ao enviar e-mail',
     mutationFn: async () => {
       const res = await api.post<ApiEnvelope<Infraction>>(`/infractions/${infractionId}/send`);
       return res.data.data;
@@ -92,10 +103,10 @@ export default function InfractionDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['infraction', infractionId] });
       queryClient.invalidateQueries({ queryKey: ['infractions', unitId] });
     },
-    onError: () => toast.error('Erro ao enviar e-mail'),
   });
 
-  const whatsappMutation = useMutation({
+  const whatsappMutation = useApiMutation({
+    errorMessage: 'Erro ao enviar WhatsApp',
     mutationFn: async () => {
       const res = await api.post<ApiEnvelope<Infraction>>(
         `/infractions/${infractionId}/send-whatsapp`,
@@ -108,7 +119,6 @@ export default function InfractionDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['infraction', infractionId] });
       queryClient.invalidateQueries({ queryKey: ['infractions', unitId] });
     },
-    onError: () => toast.error('Erro ao enviar WhatsApp'),
   });
 
   async function downloadPdf() {

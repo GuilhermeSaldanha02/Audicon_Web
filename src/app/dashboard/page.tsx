@@ -1,16 +1,14 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 import {
   FileText, CheckCircle, Send, TrendingUp,
   BarChart3, AlertTriangle,
 } from 'lucide-react';
 import { api, ApiEnvelope } from '@/lib/api';
-import { authStorage } from '@/lib/auth';
 import { DashboardResult, InfractionStatus } from '@/lib/types';
 import { BrandHeader } from '@/components/brand-header';
+import { RequireAuth } from '@/components/require-auth';
 
 const STATUS_CONFIG: Record<InfractionStatus, { label: string; color: string; bar: string }> = {
   pending:  { label: 'Pendente',  color: 'text-amber-600',  bar: 'bg-amber-400' },
@@ -55,13 +53,14 @@ const SUMMARY_CARDS = (data: DashboardResult) => [
 ];
 
 export default function DashboardPage() {
-  const router = useRouter();
+  return (
+    <RequireAuth>
+      <DashboardContent />
+    </RequireAuth>
+  );
+}
 
-  useEffect(() => {
-    const claims = authStorage.getClaims();
-    if (!claims) router.replace('/login');
-  }, [router]);
-
+function DashboardContent() {
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard'],
     queryFn: async () => {

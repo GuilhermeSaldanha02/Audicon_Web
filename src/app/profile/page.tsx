@@ -1,12 +1,10 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 import { Mail, Shield, Building2, KeyRound } from 'lucide-react';
 import { api, ApiEnvelope } from '@/lib/api';
-import { authStorage } from '@/lib/auth';
 import { BrandHeader } from '@/components/brand-header';
+import { RequireAuth } from '@/components/require-auth';
 
 type ProfileData = {
   nome: string;
@@ -23,12 +21,14 @@ function initials(name: string): string {
 }
 
 export default function ProfilePage() {
-  const router = useRouter();
+  return (
+    <RequireAuth>
+      <ProfileContent />
+    </RequireAuth>
+  );
+}
 
-  useEffect(() => {
-    if (!authStorage.get()) router.replace('/login');
-  }, [router]);
-
+function ProfileContent() {
   const { data, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {

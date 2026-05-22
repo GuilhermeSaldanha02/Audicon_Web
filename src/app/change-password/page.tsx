@@ -1,6 +1,5 @@
 'use client';
 
-import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -12,7 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { api, ApiEnvelope } from '@/lib/api';
-import { authStorage } from '@/lib/auth';
+import { useApiMutation } from '@/hooks/use-api-mutation';
+import { useAuth } from '@/lib/auth-context';
 import { BrandHeader } from '@/components/brand-header';
 
 const schema = z.object({
@@ -27,18 +27,20 @@ type Form = z.infer<typeof schema>;
 
 export default function ChangePasswordPage() {
   const router = useRouter();
+  const { claims, ready, logout } = useAuth();
 
   useEffect(() => {
-    const claims = authStorage.getClaims();
+    if (!ready) return;
     if (!claims) { router.replace('/login'); return; }
     if (!claims.mustChangePassword) { router.replace('/condominiums'); }
-  }, [router]);
+  }, [ready, claims, router]);
 
   const { register, handleSubmit, formState: { errors } } = useForm<Form>({
     resolver: zodResolver(schema),
   });
 
-  const mutation = useMutation({
+  const mutation = useApiMutation({
+    errorMessage: 'Erro ao alterar senha',
     mutationFn: async (form: Form) => {
       const res = await api.post<ApiEnvelope<{ message: string }>>(
         '/auth/change-password',
@@ -48,12 +50,8 @@ export default function ChangePasswordPage() {
     },
     onSuccess: async () => {
       toast.success('Senha alterada com sucesso! Faça login novamente.');
-      authStorage.clear();
+      logout();
       router.replace('/login');
-    },
-    onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao alterar senha';
-      toast.error(typeof msg === 'string' ? msg : 'Erro ao alterar senha');
     },
   });
 
