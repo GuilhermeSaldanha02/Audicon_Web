@@ -27,6 +27,24 @@ api.interceptors.response.use(
   },
 );
 
+/**
+ * Extrai a mensagem de erro de uma falha do axios (campo `response.data.message`
+ * do backend), com fallbacks para erros de rede e mensagem padrão.
+ */
+export function getErrorMessage(err: unknown, fallback = 'Algo deu errado. Tente novamente.'): string {
+  const axiosErr = err as {
+    response?: { data?: { message?: unknown } };
+    code?: string;
+  };
+  const message = axiosErr?.response?.data?.message;
+  if (typeof message === 'string' && message.trim()) return message;
+  if (Array.isArray(message) && typeof message[0] === 'string') return message[0];
+  if (axiosErr?.code === 'ERR_NETWORK' || axiosErr?.code === 'ECONNREFUSED') {
+    return 'Não foi possível conectar ao servidor.';
+  }
+  return fallback;
+}
+
 export type ApiEnvelope<T> = {
   statusCode: number;
   data: T;

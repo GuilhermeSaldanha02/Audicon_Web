@@ -2,22 +2,26 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Building2, MapPin, Hash, ChevronRight, AlertCircle, Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { api, ApiEnvelope, PaginatedResult } from '@/lib/api';
-import { authStorage } from '@/lib/auth';
 import { Condominium } from '@/lib/types';
 import { BrandHeader } from '@/components/brand-header';
+import { RequireAuth } from '@/components/require-auth';
 
 export default function CondominiumsPage() {
+  return (
+    <RequireAuth>
+      <CondominiumsContent />
+    </RequireAuth>
+  );
+}
+
+function CondominiumsContent() {
   const router = useRouter();
   const [search, setSearch] = useState('');
-
-  useEffect(() => {
-    if (!authStorage.get()) router.replace('/login');
-  }, [router]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['condominiums'],

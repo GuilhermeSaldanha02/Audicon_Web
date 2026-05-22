@@ -1,8 +1,8 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -18,9 +18,18 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import { api, ApiEnvelope } from '@/lib/api';
-import { authStorage } from '@/lib/auth';
+import { useApiMutation } from '@/hooks/use-api-mutation';
 import { Company, CreateCompanyRequest, CreatedCompanyResult } from '@/lib/types';
 import { BrandHeader } from '@/components/brand-header';
+import { RequireAuth } from '@/components/require-auth';
+
+export default function MasterCompaniesPage() {
+  return (
+    <RequireAuth role="master">
+      <MasterCompaniesContent />
+    </RequireAuth>
+  );
+}
 
 const createSchema = z.object({
   name: z.string().min(1, 'Nome obrigatório'),
@@ -32,18 +41,12 @@ const createSchema = z.object({
 });
 type CreateForm = z.infer<typeof createSchema>;
 
-export default function MasterCompaniesPage() {
+function MasterCompaniesContent() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [successResult, setSuccessResult] = useState<CreatedCompanyResult | null>(null);
   const [search, setSearch] = useState('');
-
-  useEffect(() => {
-    const claims = authStorage.getClaims();
-    if (!claims) { router.replace('/login'); return; }
-    if (!claims.isMaster) router.replace('/condominiums');
-  }, [router]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['master-companies'],
@@ -57,7 +60,8 @@ export default function MasterCompaniesPage() {
     resolver: zodResolver(createSchema),
   });
 
-  const createMutation = useMutation({
+  const createMutation = useApiMutation({
+    errorMessage: 'Erro ao criar empresa',
     mutationFn: async (form: CreateCompanyRequest) => {
       const res = await api.post<ApiEnvelope<CreatedCompanyResult>>('/companies', form);
       return res.data.data;
@@ -68,10 +72,6 @@ export default function MasterCompaniesPage() {
       setSuccessResult(result);
       reset();
       queryClient.invalidateQueries({ queryKey: ['master-companies'] });
-    },
-    onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message ?? 'Erro ao criar empresa';
-      toast.error(typeof msg === 'string' ? msg : 'Erro ao criar empresa');
     },
   });
 

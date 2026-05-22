@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -18,8 +18,10 @@ import {
 } from '@/components/ui/dialog';
 import { api, ApiEnvelope, PaginatedResult } from '@/lib/api';
 import { authStorage } from '@/lib/auth';
+import { useApiMutation } from '@/hooks/use-api-mutation';
 import { Infraction, Unit, InfractionStatus } from '@/lib/types';
 import { BrandHeader } from '@/components/brand-header';
+import { RequireAuth } from '@/components/require-auth';
 
 const STATUS_LABEL: Record<InfractionStatus, string> = {
   pending: 'Pendente',
@@ -46,6 +48,14 @@ const infractionSchema = z.object({
 type InfractionForm = z.infer<typeof infractionSchema>;
 
 export default function InfractionsPage() {
+  return (
+    <RequireAuth>
+      <InfractionsContent />
+    </RequireAuth>
+  );
+}
+
+function InfractionsContent() {
   const router = useRouter();
   const params = useParams();
   const condominiumId = params.id as string;
@@ -99,7 +109,8 @@ export default function InfractionsPage() {
     resolver: zodResolver(infractionSchema),
   });
 
-  const createMutation = useMutation({
+  const createMutation = useApiMutation({
+    errorMessage: 'Erro ao registrar infração',
     mutationFn: async (form: InfractionForm) => {
       const res = await api.post<ApiEnvelope<Infraction>>('/infractions', {
         description: form.description,
@@ -113,7 +124,6 @@ export default function InfractionsPage() {
       setOpen(false);
       reset();
     },
-    onError: () => toast.error('Erro ao registrar infração'),
   });
 
   return (

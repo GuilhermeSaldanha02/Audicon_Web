@@ -1,14 +1,14 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ClipboardList, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { api, ApiEnvelope, PaginatedResult } from '@/lib/api';
-import { authStorage } from '@/lib/auth';
+import { useAuth } from '@/lib/auth-context';
 import { AuditAction, AuditLogEntry, Company } from '@/lib/types';
 import { BrandHeader } from '@/components/brand-header';
+import { RequireAuth } from '@/components/require-auth';
 
 const ACTION_LABEL: Record<AuditAction, string> = {
   INFRACTION_CREATED: 'Infração criada',
@@ -39,18 +39,18 @@ const ACTION_BADGE: Record<AuditAction, string> = {
 };
 
 export default function AuditLogPage() {
-  const router = useRouter();
+  return (
+    <RequireAuth>
+      <AuditLogContent />
+    </RequireAuth>
+  );
+}
+
+function AuditLogContent() {
   const [page, setPage] = useState(1);
   const [companyFilter, setCompanyFilter] = useState<number | ''>('');
-  const [isMaster, setIsMaster] = useState(false);
+  const isMaster = !!useAuth().claims?.isMaster;
   const limit = 25;
-
-  useEffect(() => {
-    const claims = authStorage.getClaims();
-    if (!claims) { router.replace('/login'); return; }
-    if (!claims.isMaster && !claims.companyId) { router.replace('/condominiums'); return; }
-    setIsMaster(!!claims.isMaster);
-  }, [router]);
 
   const companiesQuery = useQuery({
     queryKey: ['master-companies-for-filter'],

@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { api, ApiEnvelope } from '@/lib/api';
 import { authStorage } from '@/lib/auth';
+import { useAuth } from '@/lib/auth-context';
 import { LoginRequest, LoginResponse } from '@/lib/types';
 
 const loginSchema = z.object({
@@ -23,6 +24,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
+  const { refresh } = useAuth();
 
   const {
     register,
@@ -39,6 +41,7 @@ export default function LoginPage() {
     },
     onSuccess: (data) => {
       authStorage.set(data.access_token);
+      refresh();
       toast.success('Login realizado');
       const claims = authStorage.getClaims();
       if (claims?.mustChangePassword) {
