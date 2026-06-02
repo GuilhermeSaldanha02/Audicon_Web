@@ -12,7 +12,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { api, ApiEnvelope } from '@/lib/api';
-import { authStorage } from '@/lib/auth';
 
 const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -33,10 +32,9 @@ function useAuthedBlobUrl(infractionId: string, imageId: number) {
     let cancelled = false;
     (async () => {
       try {
-        const token = authStorage.get();
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/infractions/${infractionId}/images/${imageId}`,
-          { headers: { Authorization: `Bearer ${token}` } },
+          { credentials: 'include' },
         );
         if (!res.ok) return;
         const blob = await res.blob();
