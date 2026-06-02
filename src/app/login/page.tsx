@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { api, ApiEnvelope } from '@/lib/api';
-import { authStorage } from '@/lib/auth';
 import { useAuth } from '@/lib/auth-context';
 import { LoginRequest, LoginResponse } from '@/lib/types';
 
@@ -39,11 +38,11 @@ export default function LoginPage() {
       const res = await api.post<ApiEnvelope<LoginResponse>>('/auth/login', data);
       return res.data.data;
     },
-    onSuccess: (data) => {
-      authStorage.set(data.access_token);
-      refresh();
+    onSuccess: async () => {
+      // R-08: o cookie httpOnly já foi setado pelo back. Hidrata os claims via
+      // /auth/profile (fonte única) e redireciona pelo resultado.
+      const claims = await refresh();
       toast.success('Login realizado');
-      const claims = authStorage.getClaims();
       if (claims?.mustChangePassword) {
         router.push('/change-password');
       } else {

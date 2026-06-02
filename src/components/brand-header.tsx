@@ -40,8 +40,8 @@ export function BrandHeader({ children }: { children?: React.ReactNode }) {
       : []),
   ];
 
-  function handleLogout() {
-    logout();
+  async function handleLogout() {
+    await logout();
     router.replace('/login');
   }
 

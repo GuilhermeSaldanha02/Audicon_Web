@@ -1,24 +1,21 @@
 import axios, { AxiosError } from 'axios';
-import { authStorage } from './auth';
 
+// R-08: o JWT vive em cookie httpOnly. `withCredentials` faz o axios enviar o
+// cookie em requests cross-origin; nenhum header Authorization é montado no
+// front (o browser anexa o cookie automaticamente).
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: { 'Content-Type': 'application/json' },
-});
-
-api.interceptors.request.use((config) => {
-  const token = authStorage.get();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  withCredentials: true,
 });
 
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
+    // Sessão expirada/ausente: não há token local para limpar (cookie httpOnly).
+    // Redireciona para /login como rede de segurança (a guarda de rota também
+    // trata). Suprime na própria /login para evitar loop com o probe de perfil.
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      authStorage.clear();
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }

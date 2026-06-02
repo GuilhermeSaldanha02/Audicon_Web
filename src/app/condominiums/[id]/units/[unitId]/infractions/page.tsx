@@ -17,7 +17,6 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import { api, ApiEnvelope, PaginatedResult } from '@/lib/api';
-import { authStorage } from '@/lib/auth';
 import { useApiMutation } from '@/hooks/use-api-mutation';
 import { Infraction, Unit, InfractionStatus } from '@/lib/types';
 import { BrandHeader } from '@/components/brand-header';
@@ -67,10 +66,9 @@ function InfractionsContent() {
   async function handleExportCsv() {
     setExporting(true);
     try {
-      const token = authStorage.get();
       const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
       const res = await fetch(`${baseUrl}/infractions/export?unitId=${unitId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (!res.ok) throw new Error('Falha ao exportar');
       const blob = await res.blob();

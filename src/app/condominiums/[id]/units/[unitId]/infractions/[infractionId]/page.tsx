@@ -13,7 +13,6 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import { api, ApiEnvelope } from '@/lib/api';
-import { authStorage } from '@/lib/auth';
 import { useApiMutation } from '@/hooks/use-api-mutation';
 import { Infraction, InfractionStatus } from '@/lib/types';
 import { InfractionImages } from '@/components/infraction-images';
@@ -123,10 +122,9 @@ function InfractionDetailContent() {
 
   async function downloadPdf() {
     try {
-      const token = authStorage.get();
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/infractions/${infractionId}/document`,
-        { headers: { Authorization: `Bearer ${token}` } },
+        { credentials: 'include' },
       );
       if (!res.ok) throw new Error('Falha ao gerar PDF');
       const blob = await res.blob();

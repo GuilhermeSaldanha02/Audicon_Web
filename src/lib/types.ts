@@ -3,8 +3,25 @@ export type LoginRequest = {
   password: string;
 };
 
+/**
+ * R-08: o login não retorna mais token no corpo (o JWT vai em cookie httpOnly).
+ * O corpo é apenas um marcador de sucesso; os claims vêm de GET /auth/profile.
+ */
 export type LoginResponse = {
-  access_token: string;
+  success: true;
+};
+
+/**
+ * Claims do usuário autenticado, vindos de GET /auth/profile (fonte única —
+ * cookie httpOnly não é legível por JS). Espelha o ProfileResponseDto do back.
+ */
+export type AuthClaims = {
+  nome: string;
+  email: string;
+  isMaster: boolean;
+  companyId: number | null;
+  mustChangePassword: boolean;
+  companyName: string | null;
 };
 
 export type User = {
