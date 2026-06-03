@@ -54,6 +54,26 @@ JWT é armazenado em `localStorage` (`audicon_token`) e enviado via interceptor 
 |---|---|
 | `NEXT_PUBLIC_API_URL` | URL base do backend (ex.: `http://localhost:3000`) |
 
+## Geração de tipos TypeScript (OpenAPI)
+
+Os tipos TypeScript da API são gerados automaticamente a partir do schema OpenAPI do backend.
+
+```bash
+npm run generate:types
+```
+
+**Pré-requisito:** o backend precisa estar rodando (por padrão em `http://localhost:3000`).
+
+A URL é configurável via variável de ambiente `OPENAPI_URL`:
+
+```bash
+OPENAPI_URL=http://localhost:3100/api/docs-json npm run generate:types
+```
+
+O arquivo gerado (`src/types/api.generated.ts`) é **versionado** no repositório — não é ignorado pelo `.gitignore`. Para regenerar após mudanças no backend, rode o script novamente com o backend no ar.
+
+> **Nota:** o schema Swagger fica em `/api/docs-json` (fora do prefixo global `/api/v1`).
+
 ## Próximos passos
 
 Ver backlog completo no `CLAUDE.md` do backend. Funcionalidades a integrar conforme backend evolui:
