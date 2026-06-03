@@ -1,15 +1,41 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Building2, MapPin, Hash, ChevronRight, AlertCircle, Search } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { toast } from 'sonner';
+import { Building2, MapPin, Hash, ChevronRight, AlertCircle, Search, Plus } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { api, ApiEnvelope, PaginatedResult } from '@/lib/api';
-import { Condominium } from '@/lib/types';
+import { useApiMutation } from '@/hooks/use-api-mutation';
+import { Condominium, Company } from '@/lib/types';
 import { AppShell } from '@/components/app-shell';
 import { RequireAuth } from '@/components/require-auth';
+import { useAuth } from '@/lib/auth-context';
+
+// Base schema for all roles
+const condominiumBaseSchema = z.object({
+  name: z.string().min(1, 'Nome obrigatório'),
+  cnpj: z.string().min(14, 'CNPJ inválido').max(18),
+  address: z.string().min(5, 'Endereço obrigatório'),
+});
+
+// Master adds required companyId
+const condominiumMasterSchema = condominiumBaseSchema.extend({
+  companyId: z.string().min(1, 'Selecione uma empresa'),
+});
+
+type CondominiumBaseForm = z.infer<typeof condominiumBaseSchema>;
+type CondominiumMasterForm = z.infer<typeof condominiumMasterSchema>;
 
 export default function CondominiumsPage() {
   return (
@@ -23,7 +49,14 @@ export default function CondominiumsPage() {
 
 function CondominiumsContent() {
   const router = useRouter();
+  const { claims } = useAuth();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const isMaster = claims?.role === 'MASTER';
+  const isGerente = claims?.role === 'GERENTE';
+  const canCreate = isMaster || isGerente;
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['condominiums'],
@@ -38,11 +71,41 @@ function CondominiumsContent() {
   return (
     <div className="mx-auto max-w-[var(--content-max)] px-6 py-8 space-y-8">
       {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Condomínios</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Condomínios vinculados à sua conta
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Condomínios</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Condomínios vinculados à sua conta
+          </p>
+        </div>
+        {canCreate && (
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger render={
+              <Button className="gap-2 cursor-pointer shrink-0" size="sm">
+                <Plus className="h-3.5 w-3.5" /> Novo condomínio
+              </Button>
+            } />
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Criar condomínio</DialogTitle>
+              </DialogHeader>
+              {isMaster
+                ? <CreateCondominiumMasterForm
+                    onSuccess={() => {
+                      setCreateOpen(false);
+                      queryClient.invalidateQueries({ queryKey: ['condominiums'] });
+                    }}
+                  />
+                : <CreateCondominiumGerenteForm
+                    onSuccess={() => {
+                      setCreateOpen(false);
+                      queryClient.invalidateQueries({ queryKey: ['condominiums'] });
+                    }}
+                  />
+              }
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {/* Busca */}
@@ -84,7 +147,9 @@ function CondominiumsContent() {
           </div>
           <p className="font-medium text-foreground">Nenhum condomínio ainda</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Você ainda não é membro de nenhum condomínio.
+            {canCreate
+              ? 'Clique em "Novo condomínio" para criar o primeiro.'
+              : 'Você ainda não é membro de nenhum condomínio.'}
           </p>
         </div>
       )}
@@ -100,6 +165,119 @@ function CondominiumsContent() {
         />
       )}
     </div>
+  );
+}
+
+/** Form de criação para GERENTE — não envia companyId (backend usa o do token) */
+function CreateCondominiumGerenteForm({ onSuccess }: { onSuccess: () => void }) {
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<CondominiumBaseForm>({
+    resolver: zodResolver(condominiumBaseSchema),
+  });
+
+  const mutation = useApiMutation({
+    errorMessage: 'Erro ao criar condomínio',
+    mutationFn: async (form: CondominiumBaseForm) => {
+      const res = await api.post<ApiEnvelope<Condominium>>('/condominiums', form);
+      return res.data.data;
+    },
+    onSuccess: () => {
+      toast.success('Condomínio criado');
+      reset();
+      onSuccess();
+    },
+  });
+
+  return (
+    <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
+      <div className="space-y-1.5">
+        <Label>Nome</Label>
+        <Input placeholder="Residencial das Flores" {...register('name')} />
+        {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+      </div>
+      <div className="space-y-1.5">
+        <Label>CNPJ</Label>
+        <Input placeholder="12.345.678/0001-90" {...register('cnpj')} />
+        {errors.cnpj && <p className="text-xs text-destructive">{errors.cnpj.message}</p>}
+      </div>
+      <div className="space-y-1.5">
+        <Label>Endereço</Label>
+        <Input placeholder="Rua Exemplo, 123 — São Paulo, SP" {...register('address')} />
+        {errors.address && <p className="text-xs text-destructive">{errors.address.message}</p>}
+      </div>
+      <Button type="submit" className="w-full cursor-pointer" disabled={mutation.isPending}>
+        {mutation.isPending ? 'Criando...' : 'Criar condomínio'}
+      </Button>
+    </form>
+  );
+}
+
+/** Form de criação para MASTER — exige seleção de empresa (companyId obrigatório) */
+function CreateCondominiumMasterForm({ onSuccess }: { onSuccess: () => void }) {
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<CondominiumMasterForm>({
+    resolver: zodResolver(condominiumMasterSchema),
+  });
+
+  const { data: companies, isLoading: loadingCompanies } = useQuery({
+    queryKey: ['master-companies'],
+    queryFn: async () => {
+      const res = await api.get<ApiEnvelope<Company[]>>('/companies');
+      return res.data.data;
+    },
+  });
+
+  const mutation = useApiMutation({
+    errorMessage: 'Erro ao criar condomínio',
+    mutationFn: async (form: CondominiumMasterForm) => {
+      const res = await api.post<ApiEnvelope<Condominium>>('/condominiums', {
+        name: form.name,
+        cnpj: form.cnpj,
+        address: form.address,
+        companyId: Number(form.companyId),
+      });
+      return res.data.data;
+    },
+    onSuccess: () => {
+      toast.success('Condomínio criado');
+      reset();
+      onSuccess();
+    },
+  });
+
+  return (
+    <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
+      <div className="space-y-1.5">
+        <Label>Empresa</Label>
+        <select
+          {...register('companyId')}
+          disabled={loadingCompanies}
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
+        >
+          <option value="">{loadingCompanies ? 'Carregando...' : 'Selecione a empresa...'}</option>
+          {companies?.map((c) => (
+            <option key={c.id} value={String(c.id)}>{c.name}</option>
+          ))}
+        </select>
+        {errors.companyId && <p className="text-xs text-destructive">{errors.companyId.message}</p>}
+      </div>
+      <div className="space-y-1.5">
+        <Label>Nome</Label>
+        <Input placeholder="Residencial das Flores" {...register('name')} />
+        {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+      </div>
+      <div className="space-y-1.5">
+        <Label>CNPJ</Label>
+        <Input placeholder="12.345.678/0001-90" {...register('cnpj')} />
+        {errors.cnpj && <p className="text-xs text-destructive">{errors.cnpj.message}</p>}
+      </div>
+      <div className="space-y-1.5">
+        <Label>Endereço</Label>
+        <Input placeholder="Rua Exemplo, 123 — São Paulo, SP" {...register('address')} />
+        {errors.address && <p className="text-xs text-destructive">{errors.address.message}</p>}
+      </div>
+      <Button type="submit" className="w-full cursor-pointer" disabled={mutation.isPending}>
+        {mutation.isPending ? 'Criando...' : 'Criar condomínio'}
+      </Button>
+    </form>
   );
 }
 
