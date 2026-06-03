@@ -19,6 +19,8 @@ export type AuthClaims = {
   nome: string;
   email: string;
   isMaster: boolean;
+  /** Papel do usuário: MASTER (sem tenant), GERENTE ou FUNCIONARIO (de empresa). */
+  role: 'MASTER' | 'GERENTE' | 'FUNCIONARIO';
   companyId: number | null;
   mustChangePassword: boolean;
   companyName: string | null;

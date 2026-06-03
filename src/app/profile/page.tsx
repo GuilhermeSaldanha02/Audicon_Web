@@ -12,8 +12,7 @@
  * /change-password tem gate que só libera quando mustChangePassword é true
  * (troca forçada). Por isso a seção de Segurança é informativa, não um form.
  *
- * Role gap: claims só distingue isMaster de usuário-de-empresa; não há GERENTE
- * vs FUNCIONARIO no profile (pendente de o backend expor `role`).
+ * Role: claims.role agora expõe MASTER/GERENTE/FUNCIONARIO (resolvido pré R-10 Lote 2).
  */
 
 import { useRouter } from 'next/navigation';
@@ -62,7 +61,12 @@ function ProfileContent() {
 
   if (!claims) return null;
 
-  const roleLabel = claims.isMaster ? 'Master' : 'Usuário';
+  const roleLabel =
+    claims.role === 'MASTER'
+      ? 'Master'
+      : claims.role === 'GERENTE'
+        ? 'Gerente'
+        : 'Funcionário';
 
   async function handleLogout() {
     await logout();
