@@ -603,6 +603,8 @@ export interface components {
             companyId: number | null;
             mustChangePassword: boolean;
             companyName: string | null;
+            /** @enum {string} */
+            role: "MASTER" | "GERENTE" | "FUNCIONARIO";
         };
         ChangePasswordDto: {
             /** @example NovaSenha@2026 */
