@@ -18,13 +18,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { api, ApiEnvelope } from '@/lib/api';
 import { useApiMutation } from '@/hooks/use-api-mutation';
 import { Company, Employee, CreatedEmployeeResult, Condominium } from '@/lib/types';
-import { BrandHeader } from '@/components/brand-header';
+import { AppShell } from '@/components/app-shell';
 import { RequireAuth } from '@/components/require-auth';
 
 export default function MasterCompanyDetailPage() {
   return (
     <RequireAuth role="master">
-      <MasterCompanyDetailContent />
+      <AppShell>
+        <MasterCompanyDetailContent />
+      </AppShell>
     </RequireAuth>
   );
 }
@@ -209,9 +211,21 @@ function MasterCompanyDetailContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
-        <BrandHeader />
+    <>
+      <div className="mx-auto max-w-6xl px-6 py-8 space-y-6">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <button
+            onClick={() => router.push('/master/companies')}
+            className="hover:text-foreground transition-colors cursor-pointer"
+          >
+            Empresas
+          </button>
+          <span>/</span>
+          <span className="text-foreground font-medium truncate">
+            {company?.name ?? '…'}
+          </span>
+        </nav>
 
         {/* Header */}
         <div className="flex items-start gap-4">
@@ -635,6 +649,6 @@ function MasterCompanyDetailContent() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
