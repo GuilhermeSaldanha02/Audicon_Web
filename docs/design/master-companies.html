@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Empresas — Audicon Master</title>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
+  <style>
+    svg.icon { display:inline-flex;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle; }
+    .master-chip { display:inline-flex;align-items:center;gap:5px;background:rgba(124,58,237,0.15);color:#c4b5fd;font-size:11px;font-weight:600;padding:2px 8px;border-radius:var(--radius-pill);letter-spacing:.03em;text-transform:uppercase; }
+    .toolbar { display:flex;align-items:center;gap:10px;padding:16px 0 0;flex-wrap:wrap; }
+    .toolbar-right { margin-left:auto;display:flex;gap:8px;align-items:center; }
+    .search-wrap { position:relative;flex:1;min-width:200px;max-width:320px; }
+    .search-wrap .icon { position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--subtle);pointer-events:none; }
+    .search-wrap .input { padding-left:34px; }
+    .table-card { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;margin-top:16px; }
+    table { width:100%;border-collapse:collapse; }
+    thead th { padding:10px 14px;font-size:11.5px;font-weight:600;color:var(--muted);text-align:left;background:var(--bg);border-bottom:1px solid var(--border);white-space:nowrap;letter-spacing:.04em;text-transform:uppercase; }
+    tbody tr { border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer; }
+    tbody tr:last-child { border-bottom:none; }
+    tbody tr:hover { background:var(--bg); }
+    tbody td { padding:12px 14px;font-size:13.5px;color:var(--fg);vertical-align:middle; }
+    .company-name-cell { display:flex;align-items:center;gap:10px; }
+    .company-icon { width:34px;height:34px;border-radius:var(--radius-md);background:var(--accent-muted);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0;font-size:13px;font-weight:700; }
+    .cell-name { font-weight:500; }
+    .cell-sub  { font-size:12px;color:var(--muted); }
+    .cell-mono { font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:12.5px; }
+    .table-actions { display:flex;align-items:center;gap:4px;opacity:0;transition:opacity .1s; }
+    tbody tr:hover .table-actions { opacity:1; }
+    .pagination { display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted); }
+    .page-btns { display:flex;gap:4px; }
+    .page-btn { padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);font-size:12.5px;cursor:pointer;color:var(--fg);transition:background .1s; }
+    .page-btn:hover { background:var(--bg); }
+    .page-btn.active { background:var(--accent);color:white;border-color:var(--accent); }
+
+    /* Create company modal */
+    .field { margin-bottom:14px; }
+    .field:last-child { margin-bottom:0; }
+    .field-row { display:grid;grid-template-columns:1fr 1fr;gap:12px; }
+    .field-row-3 { display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px; }
+
+    /* Stats bar */
+    .stats-bar { display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px; }
+
+    @media (max-width:1023px) { .main-content { margin-left:0; } .stats-bar { grid-template-columns:1fr 1fr; } }
+    @media (max-width:639px) { .toolbar-right { margin-left:0;width:100%; } .stats-bar { grid-template-columns:1fr; } .field-row,.field-row-3 { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <button class="btn btn-ghost btn-icon topbar-menu-btn" aria-label="Menu">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+    </button>
+    <span class="topbar-logo">Audicon</span>
+    <span class="master-chip">Master</span>
+  </div>
+  <div class="sidebar-overlay" id="overlay"></div>
+
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-mark">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div class="sidebar-logo-text">Audicon<span>Painel Master</span></div>
+      </div>
+
+      <div style="padding:10px 12px 6px;">
+        <div class="master-chip" style="width:100%;justify-content:center;font-size:11px;">
+          <svg class="icon" width="11" height="11" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          Master
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="sidebar-section">Gestão</div>
+        <a href="master-companies.html" class="nav-item active">
+          <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><rect width="7" height="7" x="2" y="3" rx="1"/><rect width="7" height="7" x="15" y="3" rx="1"/><rect width="7" height="7" x="15" y="14" rx="1"/><rect width="7" height="7" x="2" y="14" rx="1"/></svg>
+          Empresas
+          <span class="nav-badge">12</span>
+        </a>
+        <div class="sidebar-section">Conta</div>
+        <a href="profile.html" class="nav-item">
+          <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          Meu Perfil
+        </a>
+        <a href="audit-log.html" class="nav-item">
+          <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Log de Auditoria
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="avatar" style="background:#7c3aed;">MA</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name">Master Admin</div>
+            <div class="sidebar-user-role">Superadministrador</div>
+          </div>
+          <svg class="icon" width="14" height="14" viewBox="0 0 24 24" style="color:rgba(255,255,255,0.4)"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <h1 class="page-title">Empresas</h1>
+        <p class="page-subtitle">Todas as administradoras de condomínios cadastradas na plataforma</p>
+
+        <div class="stats-bar">
+          <div class="stat-card">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="stat-label">Total de Empresas</div>
+                <div class="stat-value" style="font-size:28px;">12</div>
+              </div>
+              <div class="stat-icon" style="background:var(--accent-muted);">
+                <svg class="icon" width="18" height="18" viewBox="0 0 24 24" style="color:var(--accent)"><rect width="7" height="7" x="2" y="3" rx="1"/><rect width="7" height="7" x="15" y="3" rx="1"/><rect width="7" height="7" x="15" y="14" rx="1"/><rect width="7" height="7" x="2" y="14" rx="1"/></svg>
+              </div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="stat-label">Condomínios Gerenciados</div>
+                <div class="stat-value" style="font-size:28px;">847</div>
+              </div>
+              <div class="stat-icon" style="background:var(--success-muted);">
+                <svg class="icon" width="18" height="18" viewBox="0 0 24 24" style="color:var(--success)"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg>
+              </div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="stat-label">Usuários Ativos</div>
+                <div class="stat-value" style="font-size:28px;">143</div>
+              </div>
+              <div class="stat-icon" style="background:#fdf4ff;">
+                <svg class="icon" width="18" height="18" viewBox="0 0 24 24" style="color:#7c3aed"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="search-wrap">
+            <svg class="icon" width="14" height="14" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="search" class="input" placeholder="Buscar empresa, CNPJ ou gerente…" id="search-input" autocomplete="off">
+          </div>
+          <select class="input" style="width:auto;min-width:140px;" id="filter-status">
+            <option value="">Todos os status</option>
+            <option value="active">Ativas</option>
+            <option value="inactive">Inativas</option>
+          </select>
+          <div class="toolbar-right">
+            <button class="btn btn-primary" data-modal-open="modal-create-company">
+              <svg class="icon" width="14" height="14" viewBox="0 0 24 24"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+              Nova Empresa
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Empresa</th>
+                <th>CNPJ</th>
+                <th>Gerente</th>
+                <th>Condomínios</th>
+                <th>Usuários</th>
+                <th>Criada em</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="companies-tbody">
+              <tr onclick="location.href='master-company-detail.html'">
+                <td>
+                  <div class="company-name-cell">
+                    <div class="company-icon">AP</div>
+                    <div>
+                      <div class="cell-name">Adm. Paulista Ltda.</div>
+                      <div class="cell-sub">São Paulo, SP</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="cell-mono">12.345.678/0001-90</td>
+                <td>
+                  <div class="flex items-center gap-2">
+                    <div class="avatar avatar-sm">CA</div>
+                    <span style="font-size:13px;">Carlos Andrade</span>
+                  </div>
+                </td>
+                <td class="cell-mono" style="font-weight:500;">38</td>
+                <td class="cell-mono">14</td>
+                <td><span style="font-size:12.5px;color:var(--muted);">12 jan 2024</span></td>
+                <td>
+                  <div class="table-actions">
+                    <button class="btn btn-ghost btn-icon-sm" title="Editar" onclick="event.stopPropagation()">
+                      <svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button class="btn btn-ghost btn-icon-sm" title="Ver detalhes" onclick="location.href='master-company-detail.html'">
+                      <svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr onclick="location.href='master-company-detail.html'">
+                <td>
+                  <div class="company-name-cell">
+                    <div class="company-icon" style="background:#f0fdf4;color:var(--success);">GR</div>
+                    <div>
+                      <div class="cell-name">Gestora Rio S.A.</div>
+                      <div class="cell-sub">Rio de Janeiro, RJ</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="cell-mono">98.765.432/0001-11</td>
+                <td>
+                  <div class="flex items-center gap-2">
+                    <div class="avatar avatar-sm" style="background:#16a34a;">MS</div>
+                    <span style="font-size:13px;">Mariana Silva</span>
+                  </div>
+                </td>
+                <td class="cell-mono" style="font-weight:500;">24</td>
+                <td class="cell-mono">9</td>
+                <td><span style="font-size:12.5px;color:var(--muted);">3 mar 2024</span></td>
+                <td>
+                  <div class="table-actions">
+                    <button class="btn btn-ghost btn-icon-sm" title="Editar" onclick="event.stopPropagation()">
+                      <svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button class="btn btn-ghost btn-icon-sm" title="Ver detalhes">
+                      <svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="company-name-cell">
+                    <div class="company-icon" style="background:#fdf4ff;color:#7c3aed;">CM</div>
+                    <div>
+                      <div class="cell-name">CondomínioMax BH</div>
+                      <div class="cell-sub">Belo Horizonte, MG</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="cell-mono">45.123.987/0001-55</td>
+                <td>
+                  <div class="flex items-center gap-2">
+                    <div class="avatar avatar-sm" style="background:#7c3aed;">RF</div>
+                    <span style="font-size:13px;">Roberto Ferreira</span>
+                  </div>
+                </td>
+                <td class="cell-mono" style="font-weight:500;">17</td>
+                <td class="cell-mono">6</td>
+                <td><span style="font-size:12.5px;color:var(--muted);">19 mai 2024</span></td>
+                <td>
+                  <div class="table-actions">
+                    <button class="btn btn-ghost btn-icon-sm" title="Editar" onclick="event.stopPropagation()">
+                      <svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button class="btn btn-ghost btn-icon-sm" title="Ver detalhes">
+                      <svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="company-name-cell">
+                    <div class="company-icon" style="background:var(--warning-muted);color:var(--warning);">AS</div>
+                    <div>
+                      <div class="cell-name">Adminservice Sul</div>
+                      <div class="cell-sub">Porto Alegre, RS</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="cell-mono">71.891.002/0001-33</td>
+                <td>
+                  <div class="flex items-center gap-2">
+                    <div class="avatar avatar-sm" style="background:var(--warning);">PC</div>
+                    <span style="font-size:13px;">Patricia Costa</span>
+                  </div>
+                </td>
+                <td class="cell-mono" style="font-weight:500;">11</td>
+                <td class="cell-mono">4</td>
+                <td><span style="font-size:12.5px;color:var(--muted);">7 ago 2024</span></td>
+                <td>
+                  <div class="table-actions">
+                    <button class="btn btn-ghost btn-icon-sm" title="Editar" onclick="event.stopPropagation()">
+                      <svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button class="btn btn-ghost btn-icon-sm" title="Ver detalhes">
+                      <svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="company-name-cell">
+                    <div class="company-icon" style="background:var(--danger-muted);color:var(--danger);">UG</div>
+                    <div>
+                      <div class="cell-name">Urbana Gestão Cond.</div>
+                      <div class="cell-sub">Curitiba, PR</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="cell-mono">33.451.770/0001-88</td>
+                <td>
+                  <div class="flex items-center gap-2">
+                    <div class="avatar avatar-sm" style="background:var(--danger);">FN</div>
+                    <span style="font-size:13px;">Felipe Nunes</span>
+                  </div>
+                </td>
+                <td class="cell-mono" style="font-weight:500;">8</td>
+                <td class="cell-mono">3</td>
+                <td><span style="font-size:12.5px;color:var(--muted);">15 out 2024</span></td>
+                <td>
+                  <div class="table-actions">
+                    <button class="btn btn-ghost btn-icon-sm" title="Editar" onclick="event.stopPropagation()">
+                      <svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button class="btn btn-ghost btn-icon-sm" title="Ver detalhes">
+                      <svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="pagination">
+            <span>Mostrando 5 de 12 empresas</span>
+            <div class="page-btns">
+              <button class="page-btn active">1</button>
+              <button class="page-btn">2</button>
+              <button class="page-btn">3</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Create Company Modal -->
+  <div class="modal-overlay" id="modal-create-company">
+    <div class="modal" style="max-width:560px;" role="dialog" aria-modal="true" aria-labelledby="modal-create-title">
+      <div class="modal-header">
+        <span class="modal-title" id="modal-create-title">Nova Empresa</span>
+        <button class="btn btn-ghost btn-icon-sm" data-modal-close="modal-create-company" aria-label="Fechar">
+          <svg class="icon" width="14" height="14" viewBox="0 0 24 24"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Preencha os dados da nova administradora. Um gerente será criado automaticamente com acesso à empresa.</p>
+
+        <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;">Dados da empresa</div>
+
+        <div class="field">
+          <label class="label" for="c-name">Razão social <span style="color:var(--danger)">*</span></label>
+          <input class="input" id="c-name" type="text" placeholder="Ex.: Adm. Paulista Ltda.">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="label" for="c-cnpj">CNPJ <span style="color:var(--danger)">*</span></label>
+            <input class="input" id="c-cnpj" type="text" placeholder="00.000.000/0001-00">
+          </div>
+          <div class="field">
+            <label class="label" for="c-phone">Telefone</label>
+            <input class="input" id="c-phone" type="text" placeholder="(00) 00000-0000">
+          </div>
+        </div>
+        <div class="field">
+          <label class="label" for="c-email">E-mail comercial</label>
+          <input class="input" id="c-email" type="email" placeholder="contato@empresa.com.br">
+        </div>
+        <div class="field">
+          <label class="label" for="c-addr">Endereço</label>
+          <input class="input" id="c-addr" type="text" placeholder="Rua, número, cidade, estado">
+        </div>
+
+        <hr class="divider" style="margin:20px 0;">
+        <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;">Gerente responsável</div>
+
+        <div class="field-row">
+          <div class="field">
+            <label class="label" for="g-name">Nome completo <span style="color:var(--danger)">*</span></label>
+            <input class="input" id="g-name" type="text" placeholder="Nome do gerente">
+          </div>
+          <div class="field">
+            <label class="label" for="g-email">E-mail de acesso <span style="color:var(--danger)">*</span></label>
+            <input class="input" id="g-email" type="email" placeholder="gerente@empresa.com.br">
+          </div>
+        </div>
+
+        <div class="alert alert-info" style="margin-top:4px;">
+          <svg class="icon" width="14" height="14" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+          <span>O gerente receberá um e-mail para definir sua senha no primeiro acesso.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-modal-close="modal-create-company">Cancelar</button>
+        <button class="btn btn-primary" id="btn-save-company">
+          <svg class="icon" width="13" height="13" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          Criar empresa
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById('btn-save-company').addEventListener('click', function() {
+      const name = document.getElementById('c-name').value.trim();
+      const cnpj = document.getElementById('c-cnpj').value.trim();
+      const gName = document.getElementById('g-name').value.trim();
+      const gEmail = document.getElementById('g-email').value.trim();
+      if (!name || !cnpj || !gName || !gEmail) {
+        showToast('Preencha todos os campos obrigatórios.', 'error');
+        return;
+      }
+      document.getElementById('modal-create-company').classList.remove('open');
+      showToast('Empresa criada. E-mail enviado ao gerente.', 'success');
+    });
+
+    // Live search
+    document.getElementById('search-input').addEventListener('input', function() {
+      const q = this.value.toLowerCase();
+      document.querySelectorAll('#companies-tbody tr').forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    });
+
+    // Pagination buttons
+    document.querySelectorAll('.page-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.page-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

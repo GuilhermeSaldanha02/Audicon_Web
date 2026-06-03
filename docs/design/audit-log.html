@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log de Auditoria — Audicon</title>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
+  <style>
+    svg.icon { display:inline-flex;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle; }
+    .toolbar { display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap; }
+    .search-wrap { position:relative;flex:1;min-width:200px;max-width:300px; }
+    .search-icon { position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none; }
+    .search-input { width:100%;padding:7px 10px 7px 34px;border:1px solid var(--border);border-radius:var(--radius);font-size:13.5px;background:var(--surface);color:var(--fg);outline:none; }
+    .search-input:focus { border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-muted); }
+    .filter-select { padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13.5px;background:var(--surface);color:var(--fg);outline:none;cursor:pointer; }
+    .toolbar-right { margin-left:auto; }
+    .table-card { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden; }
+    table { width:100%;border-collapse:collapse; }
+    thead th { padding:10px 14px;font-size:12px;font-weight:600;color:var(--muted);text-align:left;background:var(--bg);border-bottom:1px solid var(--border);white-space:nowrap;letter-spacing:.03em;text-transform:uppercase; }
+    tbody tr { border-bottom:1px solid var(--border); }
+    tbody tr:last-child { border-bottom:none; }
+    tbody tr:hover { background:var(--bg); }
+    tbody td { padding:11px 14px;font-size:13.5px;color:var(--fg);vertical-align:middle; }
+    .td-mono { font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted);white-space:nowrap; }
+    .action-chip { display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:var(--radius-pill);font-size:12px;font-weight:500; }
+    .action-create { background:#f0fdf4;color:#15803d; }
+    .action-update { background:var(--accent-muted);color:#1d4ed8; }
+    .action-delete { background:var(--danger-muted);color:#991b1b; }
+    .action-login  { background:var(--bg);border:1px solid var(--border);color:var(--muted); }
+    .action-export { background:#fefce8;color:#854d0e; }
+    .action-ai     { background:#fdf4ff;color:#7e22ce; }
+    .action-pdf    { background:#fff7ed;color:#9a3412; }
+    .resource-label { font-size:13px;color:var(--fg); }
+    .resource-id { font-size:12px;color:var(--muted);margin-top:1px;font-family:var(--font-mono); }
+    .actor-cell { display:flex;align-items:center;gap:8px; }
+    .pagination { display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted);flex-wrap:wrap;gap:8px; }
+    .page-btns { display:flex;gap:4px; }
+    .page-btn { padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);font-size:12.5px;cursor:pointer;color:var(--fg); }
+    .page-btn:hover { background:var(--bg); }
+    .page-btn.active { background:var(--accent);color:white;border-color:var(--accent); }
+    @media (max-width:1023px) { .main-content{margin-left:0;} }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <button class="btn btn-ghost btn-icon" id="menu-btn" aria-label="Menu">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+    </button>
+    <span class="topbar-logo">Audicon</span>
+    <div></div>
+  </div>
+  <div class="sidebar-overlay" id="overlay"></div>
+
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-mark">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div class="sidebar-logo-text">Audicon<span>Gestão de Infrações</span></div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="sidebar-section">Principal</div>
+        <a href="dashboard.html" class="nav-item">
+          <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+          Dashboard
+        </a>
+        <a href="condominiums.html" class="nav-item">
+          <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg>
+          Condomínios
+        </a>
+        <div class="sidebar-section">Conta</div>
+        <a href="profile.html" class="nav-item">
+          <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          Meu Perfil
+        </a>
+        <a href="audit-log.html" class="nav-item active">
+          <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
+          Log de Auditoria
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="avatar">CA</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name">Carlos Andrade</div>
+            <div class="sidebar-user-role">Gerente · Adm. Paulista</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div class="page-header-row">
+          <div>
+            <h1 class="page-title">Log de Auditoria</h1>
+            <p class="page-subtitle">Registro de todas as ações realizadas no sistema</p>
+          </div>
+          <button class="btn btn-secondary btn-sm">
+            <svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            Exportar CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <div class="toolbar">
+          <div class="search-wrap">
+            <svg class="icon search-icon" width="14" height="14" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
+            <input class="search-input" type="search" placeholder="Buscar ação, usuário, recurso...">
+          </div>
+          <select class="filter-select">
+            <option value="">Todos os usuários</option>
+            <option>Carlos Andrade</option>
+            <option>Ana Santos</option>
+            <option>Pedro Lima</option>
+          </select>
+          <select class="filter-select">
+            <option value="">Todas as ações</option>
+            <option>Criar</option>
+            <option>Atualizar</option>
+            <option>Deletar</option>
+            <option>Login</option>
+            <option>Exportar</option>
+            <option>Análise IA</option>
+            <option>Gerar PDF</option>
+          </select>
+          <select class="filter-select">
+            <option value="">Qualquer data</option>
+            <option>Hoje</option>
+            <option>Últimos 7 dias</option>
+            <option>Últimos 30 dias</option>
+          </select>
+          <div class="toolbar-right">
+            <span class="text-sm text-muted">284 eventos</span>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Data / Hora</th>
+                <th>Usuário</th>
+                <th>Ação</th>
+                <th>Recurso</th>
+                <th>Detalhes</th>
+                <th>IP</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="td-mono">02/06/2025 09h41</td>
+                <td>
+                  <div class="actor-cell">
+                    <div class="avatar avatar-sm">CA</div>
+                    <span style="font-size:13px">Carlos Andrade</span>
+                  </div>
+                </td>
+                <td><span class="action-chip action-ai">Análise IA</span></td>
+                <td><div class="resource-label">Infração #1042</div><div class="resource-id">cond: Res. Jardim Europa</div></td>
+                <td style="font-size:13px;color:var(--muted)">Análise gerada com sucesso</td>
+                <td class="td-mono">187.4.32.11</td>
+              </tr>
+              <tr>
+                <td class="td-mono">02/06/2025 09h35</td>
+                <td>
+                  <div class="actor-cell">
+                    <div class="avatar avatar-sm">CA</div>
+                    <span style="font-size:13px">Carlos Andrade</span>
+                  </div>
+                </td>
+                <td><span class="action-chip action-update">Atualizar</span></td>
+                <td><div class="resource-label">Infração #1042</div><div class="resource-id">status: ABERTA → EM_ANALISE</div></td>
+                <td style="font-size:13px;color:var(--muted)">Status alterado</td>
+                <td class="td-mono">187.4.32.11</td>
+              </tr>
+              <tr>
+                <td class="td-mono">01/06/2025 23h20</td>
+                <td>
+                  <div class="actor-cell">
+                    <div class="avatar avatar-sm" style="background:var(--success-muted);color:#15803d">AS</div>
+                    <span style="font-size:13px">Ana Santos</span>
+                  </div>
+                </td>
+                <td><span class="action-chip action-create">Criar</span></td>
+                <td><div class="resource-label">Infração #1042</div><div class="resource-id">cond: Res. Jardim Europa · unid: 201/A</div></td>
+                <td style="font-size:13px;color:var(--muted)">Nova infração registrada</td>
+                <td class="td-mono">200.98.7.54</td>
+              </tr>
+              <tr>
+                <td class="td-mono">01/06/2025 14h12</td>
+                <td>
+                  <div class="actor-cell">
+                    <div class="avatar avatar-sm" style="background:#fdf4ff;color:#7e22ce">PL</div>
+                    <span style="font-size:13px">Pedro Lima</span>
+                  </div>
+                </td>
+                <td><span class="action-chip action-pdf">Gerar PDF</span></td>
+                <td><div class="resource-label">Infração #1038</div><div class="resource-id">notificacao-1038.pdf · 86KB</div></td>
+                <td style="font-size:13px;color:var(--muted)">Documento gerado e baixado</td>
+                <td class="td-mono">200.98.7.55</td>
+              </tr>
+              <tr>
+                <td class="td-mono">01/06/2025 11h05</td>
+                <td>
+                  <div class="actor-cell">
+                    <div class="avatar avatar-sm">CA</div>
+                    <span style="font-size:13px">Carlos Andrade</span>
+                  </div>
+                </td>
+                <td><span class="action-chip action-export">Exportar</span></td>
+                <td><div class="resource-label">Infrações (CSV)</div><div class="resource-id">Res. Jardim Europa · 47 registros</div></td>
+                <td style="font-size:13px;color:var(--muted)">Exportação realizada</td>
+                <td class="td-mono">187.4.32.11</td>
+              </tr>
+              <tr>
+                <td class="td-mono">31/05/2025 18h00</td>
+                <td>
+                  <div class="actor-cell">
+                    <div class="avatar avatar-sm" style="background:var(--success-muted);color:#15803d">AS</div>
+                    <span style="font-size:13px">Ana Santos</span>
+                  </div>
+                </td>
+                <td><span class="action-chip action-login">Login</span></td>
+                <td><div class="resource-label">Sistema</div><div class="resource-id">—</div></td>
+                <td style="font-size:13px;color:var(--muted)">Login realizado com sucesso</td>
+                <td class="td-mono">200.98.7.54</td>
+              </tr>
+              <tr>
+                <td class="td-mono">30/05/2025 16h22</td>
+                <td>
+                  <div class="actor-cell">
+                    <div class="avatar avatar-sm">CA</div>
+                    <span style="font-size:13px">Carlos Andrade</span>
+                  </div>
+                </td>
+                <td><span class="action-chip action-create">Criar</span></td>
+                <td><div class="resource-label">Funcionário</div><div class="resource-id">Pedro Lima · pedro.lima@admpaulista.com.br</div></td>
+                <td style="font-size:13px;color:var(--muted)">Novo funcionário criado</td>
+                <td class="td-mono">187.4.32.11</td>
+              </tr>
+              <tr>
+                <td class="td-mono">29/05/2025 10h14</td>
+                <td>
+                  <div class="actor-cell">
+                    <div class="avatar avatar-sm">CA</div>
+                    <span style="font-size:13px">Carlos Andrade</span>
+                  </div>
+                </td>
+                <td><span class="action-chip action-update">Atualizar</span></td>
+                <td><div class="resource-label">Condomínio</div><div class="resource-id">Res. Jardim Europa — regimento atualizado</div></td>
+                <td style="font-size:13px;color:var(--muted)">Regimento interno editado</td>
+                <td class="td-mono">187.4.32.11</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="pagination">
+            <span>Mostrando <strong>8</strong> de <strong>284</strong> eventos</span>
+            <div class="page-btns">
+              <button class="page-btn" disabled>‹</button>
+              <button class="page-btn active">1</button>
+              <button class="page-btn">2</button>
+              <button class="page-btn">3</button>
+              <span style="padding:4px;font-size:12px;color:var(--muted)">…</span>
+              <button class="page-btn">36</button>
+              <button class="page-btn">›</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
