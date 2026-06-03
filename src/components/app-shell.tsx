@@ -3,17 +3,10 @@
 /**
  * AppShell — layout autenticado reutilizável (R-10 Lote 1)
  *
- * NOTA DE IMPLEMENTAÇÃO — Role gap:
- * O auth-context expõe claims { nome, email, isMaster, companyId, mustChangePassword, companyName }.
- * NÃO existe um campo `role` (GERENTE vs FUNCIONARIO) no /auth/profile hoje.
- * Portanto:
- *  - MASTER (isMaster === true) → vê navegação master
- *  - Usuário-de-empresa (!isMaster && companyId != null) → vê navegação completa (superset do GERENTE)
- *
- * A separação GERENTE/FUNCIONARIO (ex.: esconder "Funcionários" para FUNCIONARIO)
- * fica pendente de o backend expor `role` no /auth/profile. Sugestão de follow-up:
- * adicionar campo `role: 'ADMIN' | 'MANAGER' | 'RESIDENT'` no ProfileResponseDto
- * e no AuthClaims, então filtrar navItems aqui por role.
+ * Navegação por papel (claims.role — resolvido no pré R-10 Lote 2):
+ *  - MASTER    → Empresas / Auditoria, Perfil
+ *  - GERENTE   → Dashboard, Condomínios, Infrações, Funcionários / Auditoria, Perfil
+ *  - FUNCIONARIO → Dashboard, Condomínios, Infrações / Perfil
  */
 
 import { useState, useEffect } from 'react';
@@ -39,8 +32,10 @@ interface NavItem {
   badge?: number; // placeholder — contagem real em lote futuro
 }
 
-function getNavItems(isMaster: boolean): { section: string; items: NavItem[] }[] {
-  if (isMaster) {
+type UserRole = 'MASTER' | 'GERENTE' | 'FUNCIONARIO';
+
+function getNavItems(role: UserRole): { section: string; items: NavItem[] }[] {
+  if (role === 'MASTER') {
     return [
       {
         section: 'Principal',
@@ -58,9 +53,33 @@ function getNavItems(isMaster: boolean): { section: string; items: NavItem[] }[]
     ];
   }
 
-  // Usuário-de-empresa: mostra superset (GERENTE).
-  // TODO: quando o backend expor `role` no /auth/profile, filtrar aqui:
-  //   se role === 'EMPLOYEE', remover o item "Funcionários".
+  if (role === 'GERENTE') {
+    return [
+      {
+        section: 'Principal',
+        items: [
+          { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+          { href: '/condominiums', label: 'Condomínios', icon: Building2 },
+          {
+            href: '/condominiums',
+            label: 'Infrações',
+            icon: AlertTriangle,
+            // badge: 0 — placeholder; contagem real virá em lote futuro
+          },
+          { href: '/company/employees', label: 'Funcionários', icon: Users },
+        ],
+      },
+      {
+        section: 'Sistema',
+        items: [
+          { href: '/audit-log', label: 'Auditoria', icon: FileText },
+          { href: '/profile', label: 'Perfil', icon: User },
+        ],
+      },
+    ];
+  }
+
+  // FUNCIONARIO (e fallback para role desconhecido): sem Funcionários, sem Auditoria.
   return [
     {
       section: 'Principal',
@@ -73,13 +92,11 @@ function getNavItems(isMaster: boolean): { section: string; items: NavItem[] }[]
           icon: AlertTriangle,
           // badge: 0 — placeholder; contagem real virá em lote futuro
         },
-        { href: '/company/employees', label: 'Funcionários', icon: Users },
       ],
     },
     {
       section: 'Sistema',
       items: [
-        { href: '/audit-log', label: 'Auditoria', icon: FileText },
         { href: '/profile', label: 'Perfil', icon: User },
       ],
     },
@@ -119,13 +136,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     router.replace('/login');
   }
 
-  const isMaster = !!claims?.isMaster;
-  const sections = getNavItems(isMaster);
-  const userLabel = isMaster
-    ? 'Master'
-    : claims?.companyName
-      ? `Usuário · ${claims.companyName}`
-      : 'Usuário';
+  const role: UserRole = claims?.role ?? 'FUNCIONARIO';
+  const sections = getNavItems(role);
+  const userLabel =
+    role === 'MASTER'
+      ? 'Master'
+      : claims?.companyName
+        ? `${role === 'GERENTE' ? 'Gerente' : 'Funcionário'} · ${claims.companyName}`
+        : role === 'GERENTE'
+          ? 'Gerente'
+          : 'Funcionário';
 
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
