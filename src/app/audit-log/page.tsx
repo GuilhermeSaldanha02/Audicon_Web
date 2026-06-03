@@ -1,13 +1,14 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { ClipboardList, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { api, ApiEnvelope, PaginatedResult } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { AuditAction, AuditLogEntry, Company } from '@/lib/types';
-import { BrandHeader } from '@/components/brand-header';
+import { AppShell } from '@/components/app-shell';
 import { RequireAuth } from '@/components/require-auth';
 
 const ACTION_LABEL: Record<AuditAction, string> = {
@@ -41,16 +42,28 @@ const ACTION_BADGE: Record<AuditAction, string> = {
 export default function AuditLogPage() {
   return (
     <RequireAuth>
-      <AuditLogContent />
+      <AppShell>
+        <AuditLogContent />
+      </AppShell>
     </RequireAuth>
   );
 }
 
 function AuditLogContent() {
+  const router = useRouter();
+  const { claims, ready } = useAuth();
   const [page, setPage] = useState(1);
   const [companyFilter, setCompanyFilter] = useState<number | ''>('');
-  const isMaster = !!useAuth().claims?.isMaster;
+  const isMaster = !!claims?.isMaster;
   const limit = 25;
+
+  // Auditoria é para MASTER e GERENTE; FUNCIONARIO não acessa (a sidebar já
+  // esconde o item — esta guarda cobre acesso direto por URL).
+  useEffect(() => {
+    if (ready && claims?.role === 'FUNCIONARIO') {
+      router.replace('/dashboard');
+    }
+  }, [ready, claims, router]);
 
   const companiesQuery = useQuery({
     queryKey: ['master-companies-for-filter'],
@@ -75,11 +88,10 @@ function AuditLogContent() {
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / limit)) : 1;
 
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
-        <BrandHeader />
+  if (claims?.role === 'FUNCIONARIO') return null;
 
+  return (
+    <div className="mx-auto max-w-6xl px-6 py-8 space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Auditoria</h1>
@@ -194,7 +206,6 @@ function AuditLogContent() {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }
