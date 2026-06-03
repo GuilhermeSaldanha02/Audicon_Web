@@ -7,8 +7,8 @@ import {
   FileText, CheckCircle, Send, TrendingUp,
   BarChart3, AlertTriangle,
 } from 'lucide-react';
-import { api, ApiEnvelope } from '@/lib/api';
-import { DashboardResult, InfractionStatus } from '@/lib/types';
+import { api, ApiEnvelope, PaginatedResult } from '@/lib/api';
+import { DashboardResult, Infraction, InfractionSeverity, InfractionStatus } from '@/lib/types';
 import { AppShell } from '@/components/app-shell';
 import { RequireAuth } from '@/components/require-auth';
 import { useAuth } from '@/lib/auth-context';
@@ -82,6 +82,78 @@ function DashboardWrapper() {
   );
 }
 
+const SEVERITY_DONUT_CONFIG: Record<InfractionSeverity, { label: string; color: string; bg: string }> = {
+  LEVE:  { label: 'Leve',  color: 'var(--sev-leve)',  bg: 'var(--sev-leve-bg)' },
+  MEDIA: { label: 'Média', color: 'var(--sev-media)', bg: 'var(--sev-media-bg)' },
+  GRAVE: { label: 'Grave', color: 'var(--sev-grave)', bg: 'var(--sev-grave-bg)' },
+};
+
+function SeverityDonut({ counts }: { counts: Record<InfractionSeverity, number> }) {
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  if (total === 0) {
+    return (
+      <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+        Sem dados de gravidade
+      </div>
+    );
+  }
+
+  const entries = (Object.keys(SEVERITY_DONUT_CONFIG) as InfractionSeverity[]).map((sev) => ({
+    sev,
+    count: counts[sev],
+    pct: total > 0 ? (counts[sev] / total) * 100 : 0,
+    ...SEVERITY_DONUT_CONFIG[sev],
+  }));
+
+  // Build SVG donut
+  const r = 40;
+  const cx = 56;
+  const cy = 56;
+  const strokeW = 16;
+  const circumference = 2 * Math.PI * r;
+  let offset = 0;
+
+  const slices = entries.map((e) => {
+    const dashArray = (e.pct / 100) * circumference;
+    const slice = { ...e, dashArray, dashOffset: circumference - offset };
+    offset += dashArray;
+    return slice;
+  });
+
+  return (
+    <div className="flex items-center gap-6">
+      <svg width="112" height="112" viewBox="0 0 112 112" className="shrink-0 -rotate-90">
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border)" strokeWidth={strokeW} />
+        {slices.map((s) => s.count > 0 && (
+          <circle
+            key={s.sev}
+            cx={cx} cy={cy} r={r}
+            fill="none"
+            stroke={s.color}
+            strokeWidth={strokeW}
+            strokeDasharray={`${s.dashArray} ${circumference}`}
+            strokeDashoffset={-circumference + slices.slice(0, slices.indexOf(s)).reduce((a, x) => a + x.dashArray, 0)}
+          />
+        ))}
+      </svg>
+      <div className="space-y-2 text-sm flex-1">
+        {entries.map((e) => (
+          <div key={e.sev} className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="inline-block h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: e.color }} />
+              <span className="text-foreground">{e.label}</span>
+            </div>
+            <span className="font-semibold text-foreground">
+              {e.count} <span className="font-normal text-muted-foreground">({Math.round(e.pct)}%)</span>
+            </span>
+          </div>
+        ))}
+        <p className="text-xs text-muted-foreground pt-1">Total: {total}</p>
+      </div>
+    </div>
+  );
+}
+
 function DashboardContent() {
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard'],
@@ -90,6 +162,28 @@ function DashboardContent() {
       return res.data.data;
     },
   });
+
+  // Fetch infractions for severity aggregation (client-side).
+  // Note: GET /dashboard does not return severity data; we aggregate from the
+  // infraction list. Fetches up to 200 infractions of the current company scope.
+  const { data: infractionsForSeverity } = useQuery({
+    queryKey: ['infractions-severity-dashboard'],
+    queryFn: async () => {
+      const res = await api.get<ApiEnvelope<PaginatedResult<Infraction>>>(
+        '/infractions?limit=200',
+      );
+      return res.data.data;
+    },
+  });
+
+  const severityCounts: Record<InfractionSeverity, number> = { LEVE: 0, MEDIA: 0, GRAVE: 0 };
+  if (infractionsForSeverity?.data) {
+    for (const inf of infractionsForSeverity.data) {
+      if (inf.severity === 'LEVE' || inf.severity === 'MEDIA' || inf.severity === 'GRAVE') {
+        severityCounts[inf.severity]++;
+      }
+    }
+  }
 
   const maxMonth = data ? Math.max(...data.byMonth.map((m) => m.count), 1) : 1;
 
@@ -128,7 +222,7 @@ function DashboardContent() {
             })}
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-3">
             {/* Por status */}
             <div className="rounded-xl border border-border bg-card p-6">
               <div className="flex items-center gap-2 mb-5">
@@ -159,6 +253,15 @@ function DashboardContent() {
                   );
                 })}
               </div>
+            </div>
+
+            {/* Por gravidade */}
+            <div className="rounded-xl border border-border bg-card p-6">
+              <div className="flex items-center gap-2 mb-5">
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                <h2 className="font-semibold text-foreground">Por gravidade</h2>
+              </div>
+              <SeverityDonut counts={severityCounts} />
             </div>
 
             {/* Por mês */}
