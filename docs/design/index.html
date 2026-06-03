@@ -1,0 +1,169 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audicon — Protótipos</title>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
+  <style>
+    body { background:var(--bg); }
+    .page { max-width:960px;margin:0 auto;padding:48px 24px; }
+    .hero { margin-bottom:48px; }
+    .hero-eyebrow { font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px; }
+    .hero-title { font-size:30px;font-weight:700;color:var(--fg);letter-spacing:-0.02em; }
+    .hero-sub { font-size:15px;color:var(--muted);margin-top:6px;max-width:540px; }
+
+    .section { margin-bottom:40px; }
+    .section-label { font-size:11.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px; }
+    .role-chip { display:inline-flex;align-items:center;padding:2px 8px;border-radius:var(--radius-pill);font-size:10.5px;font-weight:600; }
+    .role-master     { background:#fdf4ff;color:#7c3aed; }
+    .role-gerente    { background:var(--accent-muted);color:var(--accent); }
+    .role-funcionario{ background:var(--bg);color:var(--muted);border:1px solid var(--border); }
+    .role-all        { background:var(--bg);color:var(--fg);border:1px solid var(--border); }
+
+    .screens-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:12px; }
+    .screen-card { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;text-decoration:none;color:var(--fg);transition:border-color .15s,box-shadow .15s;display:flex;flex-direction:column; }
+    .screen-card:hover { border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-muted);text-decoration:none; }
+    .screen-thumb { height:100px;background:var(--brand-navy);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden; }
+    .screen-thumb-inner { width:80%;height:80%;background:var(--surface);border-radius:4px;display:flex;flex-direction:column;overflow:hidden;opacity:.9; }
+    .thumb-topbar { height:8px;background:var(--brand-navy);display:flex;align-items:center;padding:0 6px;gap:3px;flex-shrink:0; }
+    .thumb-dot { width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.3); }
+    .thumb-sidebar { width:30px;background:var(--brand-navy);flex-shrink:0;height:100%; }
+    .thumb-body { flex:1;padding:4px 5px;background:var(--bg); }
+    .thumb-card { height:8px;background:var(--surface);border:1px solid var(--border);border-radius:2px;margin-bottom:3px; }
+    .thumb-row  { height:5px;background:var(--border);border-radius:1px;margin-bottom:3px;width:80%; }
+    .thumb-row.short { width:55%; }
+
+    .thumb-login { background:linear-gradient(135deg,#172554 0%,#1e3a8a 100%); }
+    .login-box { width:60%;background:white;border-radius:4px;padding:8px 6px; }
+    .login-field { height:6px;background:var(--bg);border:1px solid var(--border);border-radius:2px;margin-bottom:4px; }
+    .login-btn { height:7px;background:var(--accent);border-radius:2px; }
+
+    .screen-info { padding:12px 14px; }
+    .screen-title { font-size:13.5px;font-weight:600;color:var(--fg); }
+    .screen-route { font-size:11.5px;color:var(--muted);font-family:var(--font-mono);margin-top:2px; }
+    .screen-desc { font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45; }
+    .screen-footer { padding:8px 14px 12px;display:flex;align-items:center;gap:6px;margin-top:auto; }
+
+    @media (max-width:767px) { .screens-grid { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:479px) { .screens-grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="hero">
+      <div class="flex items-center gap-3" style="margin-bottom:16px;">
+        <div style="width:36px;height:36px;background:var(--brand-navy);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div style="font-size:20px;font-weight:700;color:var(--fg);letter-spacing:-0.01em;">Audicon</div>
+      </div>
+      <div class="hero-eyebrow">Protótipos de design · High-fidelity</div>
+      <h1 class="hero-title">Sistema de gestão de infrações</h1>
+      <p class="hero-sub">SaaS B2B para administradoras de condomínios. 11 telas interativas organizadas por papel de usuário.</p>
+      <div class="flex items-center gap-3" style="margin-top:16px;">
+        <div class="flex items-center gap-2" style="font-size:13px;color:var(--muted);">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;"></span>
+          Stack: Next.js 15 / React 19 / Tailwind 4 / shadcn/ui
+        </div>
+        <div style="color:var(--border);">·</div>
+        <div style="font-size:13px;color:var(--muted);">11 telas · 3 papéis</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Autenticação<span class="role-chip role-all">Todos os papéis</span></div>
+      <div class="screens-grid">
+        <a class="screen-card" href="login.html">
+          <div class="screen-thumb thumb-login">
+            <div class="login-box">
+              <div style="height:5px;background:var(--brand-navy);border-radius:2px;width:60%;margin:0 auto 6px;"></div>
+              <div class="login-field"></div><div class="login-field"></div><div class="login-btn"></div>
+            </div>
+          </div>
+          <div class="screen-info"><div class="screen-title">Login</div><div class="screen-route">/login</div><div class="screen-desc">E-mail + senha. Redireciona por papel após autenticação.</div></div>
+          <div class="screen-footer"><span class="role-chip role-all">Todos</span></div>
+        </a>
+        <a class="screen-card" href="change-password.html">
+          <div class="screen-thumb thumb-login">
+            <div class="login-box">
+              <div style="height:5px;background:var(--accent);border-radius:2px;width:40%;margin:0 auto 6px;"></div>
+              <div class="login-field"></div><div class="login-field"></div><div class="login-field"></div><div class="login-btn"></div>
+            </div>
+          </div>
+          <div class="screen-info"><div class="screen-title">Troca de senha</div><div class="screen-route">/change-password</div><div class="screen-desc">Obrigatório no primeiro acesso.</div></div>
+          <div class="screen-footer"><span class="role-chip role-all">Todos</span></div>
+        </a>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Painel Operacional<span class="role-chip role-gerente">Gerente</span><span class="role-chip role-funcionario">Funcionário</span></div>
+      <div class="screens-grid">
+        <a class="screen-card" href="dashboard.html">
+          <div class="screen-thumb"><div class="screen-thumb-inner"><div class="thumb-topbar"><div class="thumb-dot"></div></div><div style="display:flex;flex:1;"><div class="thumb-sidebar"></div><div class="thumb-body"><div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:4px;"><div style="height:14px;background:var(--surface);border:1px solid var(--border);border-radius:2px;"></div><div style="height:14px;background:var(--surface);border:1px solid var(--border);border-radius:2px;"></div></div><div class="thumb-card"></div><div class="thumb-row"></div></div></div></div></div>
+          <div class="screen-info"><div class="screen-title">Dashboard</div><div class="screen-route">/dashboard</div><div class="screen-desc">Totais, gráficos de status e gravidade, infrações recentes.</div></div>
+          <div class="screen-footer"><span class="role-chip role-gerente">Gerente</span><span class="role-chip role-funcionario">Funcionário</span></div>
+        </a>
+        <a class="screen-card" href="condominiums.html">
+          <div class="screen-thumb"><div class="screen-thumb-inner"><div class="thumb-topbar"><div class="thumb-dot"></div></div><div style="display:flex;flex:1;"><div class="thumb-sidebar"></div><div class="thumb-body"><div class="thumb-card"></div><div class="thumb-card"></div><div class="thumb-card"></div></div></div></div></div>
+          <div class="screen-info"><div class="screen-title">Condomínios</div><div class="screen-route">/condominiums</div><div class="screen-desc">Lista com busca. Gerente pode criar novos.</div></div>
+          <div class="screen-footer"><span class="role-chip role-gerente">Gerente</span><span class="role-chip role-funcionario">Funcionário (leitura)</span></div>
+        </a>
+        <a class="screen-card" href="condominium-detail.html">
+          <div class="screen-thumb"><div class="screen-thumb-inner"><div class="thumb-topbar"><div class="thumb-dot"></div></div><div style="display:flex;flex:1;"><div class="thumb-sidebar"></div><div class="thumb-body"><div style="height:18px;background:var(--surface);border:1px solid var(--border);border-radius:2px;margin-bottom:4px;"></div><div class="thumb-card"></div><div class="thumb-card"></div></div></div></div></div>
+          <div class="screen-info"><div class="screen-title">Detalhe do condomínio</div><div class="screen-route">/condominiums/[id]</div><div class="screen-desc">Dados + tabs Unidades / Infrações.</div></div>
+          <div class="screen-footer"><span class="role-chip role-gerente">Gerente</span><span class="role-chip role-funcionario">Funcionário</span></div>
+        </a>
+        <a class="screen-card" href="infractions.html">
+          <div class="screen-thumb"><div class="screen-thumb-inner"><div class="thumb-topbar"><div class="thumb-dot"></div></div><div style="display:flex;flex:1;"><div class="thumb-sidebar"></div><div class="thumb-body"><div style="display:flex;gap:3px;margin-bottom:4px;"><div style="height:6px;background:var(--sev-grave-bg);border-radius:2px;width:20px;"></div><div style="height:6px;background:var(--sev-media-bg);border-radius:2px;width:18px;"></div><div style="height:6px;background:var(--sev-leve-bg);border-radius:2px;width:22px;"></div></div><div class="thumb-card"></div><div class="thumb-card"></div><div class="thumb-card"></div></div></div></div></div>
+          <div class="screen-info"><div class="screen-title">Infrações</div><div class="screen-route">/condominiums/[id]/infractions</div><div class="screen-desc">Filtros de status e gravidade. Exportar CSV.</div></div>
+          <div class="screen-footer"><span class="role-chip role-gerente">Gerente</span><span class="role-chip role-funcionario">Funcionário</span></div>
+        </a>
+        <a class="screen-card" href="infraction-detail.html">
+          <div class="screen-thumb"><div class="screen-thumb-inner"><div class="thumb-topbar"><div class="thumb-dot"></div></div><div style="display:flex;flex:1;"><div class="thumb-sidebar"></div><div class="thumb-body"><div style="height:22px;background:var(--surface);border:1px solid var(--border);border-radius:2px;margin-bottom:3px;"></div><div style="display:flex;gap:2px;margin-bottom:3px;"><div style="height:5px;background:var(--accent-muted);border-radius:2px;width:28px;"></div><div style="height:5px;background:var(--sev-grave-bg);border-radius:2px;width:22px;"></div></div><div style="height:5px;background:var(--accent);border-radius:2px;width:40%;opacity:.7;"></div></div></div></div></div>
+          <div class="screen-info"><div class="screen-title">Detalhe da infração</div><div class="screen-route">/condominiums/[id]/infractions/[id]</div><div class="screen-desc">Análise IA, geração de PDF, imagens.</div></div>
+          <div class="screen-footer"><span class="role-chip role-gerente">Gerente</span><span class="role-chip role-funcionario">Funcionário</span></div>
+        </a>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Painel Master<span class="role-chip role-master">Master</span></div>
+      <div class="screens-grid">
+        <a class="screen-card" href="master-companies.html">
+          <div class="screen-thumb"><div class="screen-thumb-inner"><div class="thumb-topbar"><div class="thumb-dot"></div></div><div style="display:flex;flex:1;"><div class="thumb-sidebar" style="background:#3b0764;"></div><div class="thumb-body"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;margin-bottom:4px;"><div style="height:14px;background:var(--surface);border:1px solid var(--border);border-radius:2px;"></div><div style="height:14px;background:var(--surface);border:1px solid var(--border);border-radius:2px;"></div><div style="height:14px;background:var(--surface);border:1px solid var(--border);border-radius:2px;"></div></div><div class="thumb-card"></div><div class="thumb-card"></div><div class="thumb-card"></div></div></div></div></div>
+          <div class="screen-info"><div class="screen-title">Empresas (Master)</div><div class="screen-route">/master/companies</div><div class="screen-desc">Lista todas as administradoras. Criar empresa + gerente.</div></div>
+          <div class="screen-footer"><span class="role-chip role-master">Master</span></div>
+        </a>
+        <a class="screen-card" href="master-company-detail.html">
+          <div class="screen-thumb"><div class="screen-thumb-inner"><div class="thumb-topbar"><div class="thumb-dot"></div></div><div style="display:flex;flex:1;"><div class="thumb-sidebar" style="background:#3b0764;"></div><div class="thumb-body"><div style="height:20px;background:var(--surface);border:1px solid var(--border);border-radius:2px;margin-bottom:4px;"></div><div class="thumb-card"></div><div class="thumb-card"></div></div></div></div></div>
+          <div class="screen-info"><div class="screen-title">Detalhe da empresa</div><div class="screen-route">/master/companies/[id]</div><div class="screen-desc">Usuários, atividade, criar usuário.</div></div>
+          <div class="screen-footer"><span class="role-chip role-master">Master</span></div>
+        </a>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Conta e Auditoria<span class="role-chip role-all">Todos</span></div>
+      <div class="screens-grid">
+        <a class="screen-card" href="profile.html">
+          <div class="screen-thumb"><div class="screen-thumb-inner"><div class="thumb-topbar"><div class="thumb-dot"></div></div><div style="display:flex;flex:1;"><div class="thumb-sidebar"></div><div class="thumb-body"><div style="display:flex;gap:4px;align-items:center;margin-bottom:4px;"><div style="width:14px;height:14px;border-radius:50%;background:var(--accent);flex-shrink:0;"></div><div style="flex:1;height:5px;background:var(--border);border-radius:1px;"></div></div><div class="thumb-row"></div><div class="thumb-row short"></div></div></div></div></div>
+          <div class="screen-info"><div class="screen-title">Meu perfil</div><div class="screen-route">/profile</div><div class="screen-desc">Dados pessoais e troca de senha.</div></div>
+          <div class="screen-footer"><span class="role-chip role-all">Todos</span></div>
+        </a>
+        <a class="screen-card" href="audit-log.html">
+          <div class="screen-thumb"><div class="screen-thumb-inner"><div class="thumb-topbar"><div class="thumb-dot"></div></div><div style="display:flex;flex:1;"><div class="thumb-sidebar"></div><div class="thumb-body"><div class="thumb-row"></div><div class="thumb-row short"></div><div class="thumb-row" style="width:90%;"></div><div class="thumb-row short"></div><div class="thumb-row" style="width:75%;"></div></div></div></div></div>
+          <div class="screen-info"><div class="screen-title">Log de auditoria</div><div class="screen-route">/audit-log</div><div class="screen-desc">Histórico de ações com filtros por usuário e período.</div></div>
+          <div class="screen-footer"><span class="role-chip role-all">Todos</span></div>
+        </a>
+      </div>
+    </div>
+  </div>
+  <script src="js/app.js"></script>
+</body>
+</html>

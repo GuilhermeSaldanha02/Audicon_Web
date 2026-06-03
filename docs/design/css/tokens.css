@@ -1,0 +1,127 @@
+/* Audicon Design System — Tokens */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Brand */
+  --brand-navy:       #172554;
+  --brand-navy-hover: #1e3a8a;
+  --brand-navy-active:#1e40af;
+
+  /* Content layer */
+  --bg:       #f8fafc;
+  --surface:  #ffffff;
+  --fg:       #0f172a;
+  --muted:    #64748b;
+  --subtle:   #94a3b8;
+  --border:   #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  /* Accent */
+  --accent:        #2563eb;
+  --accent-hover:  #1d4ed8;
+  --accent-muted:  #eff6ff;
+  --accent-border: #bfdbfe;
+
+  /* Semantic */
+  --success:       #16a34a;
+  --success-muted: #f0fdf4;
+  --warning:       #d97706;
+  --warning-muted: #fffbeb;
+  --danger:        #dc2626;
+  --danger-muted:  #fef2f2;
+  --info:          #0284c7;
+  --info-muted:    #f0f9ff;
+
+  /* Infraction severity */
+  --sev-leve:        #16a34a;
+  --sev-leve-bg:     #dcfce7;
+  --sev-media:       #d97706;
+  --sev-media-bg:    #fef3c7;
+  --sev-grave:       #dc2626;
+  --sev-grave-bg:    #fee2e2;
+
+  /* Infraction status */
+  --st-aberta:       #64748b;
+  --st-aberta-bg:    #f1f5f9;
+  --st-analise:      #d97706;
+  --st-analise-bg:   #fef3c7;
+  --st-notificada:   #2563eb;
+  --st-notificada-bg:#dbeafe;
+  --st-fechada:      #16a34a;
+  --st-fechada-bg:   #dcfce7;
+
+  /* Typography */
+  --font:      'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+
+  /* Spacing */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius:    6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(15,23,42,0.06);
+  --shadow:    0 1px 3px rgba(15,23,42,0.08), 0 1px 2px rgba(15,23,42,0.06);
+  --shadow-md: 0 4px 6px rgba(15,23,42,0.07), 0 2px 4px rgba(15,23,42,0.06);
+  --shadow-lg: 0 10px 15px rgba(15,23,42,0.08), 0 4px 6px rgba(15,23,42,0.05);
+
+  /* Layout */
+  --sidebar-w:       240px;
+  --sidebar-w-collapsed: 64px;
+  --header-h:        56px;
+  --content-max:     1280px;
+}
+
+/* Base reset */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 14px; -webkit-font-smoothing: antialiased; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.5;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Typography scale */
+.text-xs   { font-size: 12px; line-height: 1.4; }
+.text-sm   { font-size: 13px; line-height: 1.4; }
+.text-base { font-size: 14px; line-height: 1.5; }
+.text-md   { font-size: 16px; line-height: 1.5; }
+.text-lg   { font-size: 18px; line-height: 1.4; }
+.text-xl   { font-size: 20px; line-height: 1.3; }
+.text-2xl  { font-size: 24px; line-height: 1.2; letter-spacing: -0.02em; }
+.text-3xl  { font-size: 30px; line-height: 1.15; letter-spacing: -0.02em; }
+
+.font-medium  { font-weight: 500; }
+.font-semibold{ font-weight: 600; }
+.font-bold    { font-weight: 700; }
+.text-muted   { color: var(--muted); }
+.text-subtle  { color: var(--subtle); }
+.text-accent  { color: var(--accent); }
+.text-danger  { color: var(--danger); }
+.text-success { color: var(--success); }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }

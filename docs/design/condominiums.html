@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Condomínios — Audicon</title>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
+  <style>
+    svg.icon { display:inline-flex;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle; }
+    .toolbar { display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap; }
+    .search-wrap { position:relative;flex:1;min-width:180px;max-width:320px; }
+    .search-wrap .icon { position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted); }
+    .search-input { width:100%;padding:7px 10px 7px 34px;border:1px solid var(--border);border-radius:var(--radius);font-size:13.5px;background:var(--surface);color:var(--fg);outline:none; }
+    .search-input:focus { border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-muted); }
+    .filter-select { padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13.5px;background:var(--surface);color:var(--fg);outline:none;cursor:pointer; }
+    .filter-select:focus { border-color:var(--accent); }
+    .toolbar-right { margin-left:auto;display:flex;gap:8px;align-items:center; }
+    .empty-state { text-align:center;padding:64px 24px; }
+    .empty-icon { width:48px;height:48px;border-radius:12px;background:var(--bg);border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;color:var(--muted);margin-bottom:16px; }
+    .empty-title { font-size:15px;font-weight:600;color:var(--fg);margin-bottom:6px; }
+    .empty-sub { font-size:13px;color:var(--muted);margin-bottom:20px; }
+    .table-card { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden; }
+    table { width:100%;border-collapse:collapse; }
+    thead th { padding:10px 14px;font-size:12px;font-weight:600;color:var(--muted);text-align:left;background:var(--bg);border-bottom:1px solid var(--border);white-space:nowrap;letter-spacing:.03em;text-transform:uppercase; }
+    tbody tr { border-bottom:1px solid var(--border);transition:background .1s; }
+    tbody tr:last-child { border-bottom:none; }
+    tbody tr:hover { background:var(--bg); }
+    tbody td { padding:12px 14px;font-size:13.5px;color:var(--fg);vertical-align:middle; }
+    .td-name { font-weight:500; }
+    .td-address { color:var(--muted);font-size:13px; }
+    .td-units { font-variant-numeric:tabular-nums;font-weight:500; }
+    .td-date { color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums; }
+    .row-actions { display:flex;align-items:center;gap:4px;opacity:0;transition:opacity .1s; }
+    tbody tr:hover .row-actions { opacity:1; }
+    .condo-icon-wrap { width:36px;height:36px;border-radius:var(--radius);background:var(--accent-muted);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0; }
+    .condo-name-cell { display:flex;align-items:center;gap:10px; }
+    .pagination { display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted); }
+    .page-btns { display:flex;gap:4px; }
+    .page-btn { padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);font-size:12.5px;cursor:pointer;color:var(--fg); }
+    .page-btn:hover { background:var(--bg); }
+    .page-btn.active { background:var(--accent);color:white;border-color:var(--accent); }
+
+    /* Modal */
+    .modal-overlay { position:fixed;inset:0;background:rgba(15,23,42,0.45);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px; }
+    .modal-overlay.hidden { display:none; }
+    .modal { background:var(--surface);border-radius:var(--radius-lg);width:100%;max-width:520px;box-shadow:0 8px 24px rgba(15,23,42,0.15);max-height:90vh;overflow-y:auto; }
+    .modal-head { padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between; }
+    .modal-title { font-size:16px;font-weight:600;color:var(--fg); }
+    .modal-body { padding:20px 24px; }
+    .modal-foot { padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end; }
+    .field { margin-bottom:16px; }
+    .field:last-child { margin-bottom:0; }
+    label.field-label { display:block;font-size:12.5px;font-weight:500;color:var(--fg);margin-bottom:5px; }
+    .field-input { width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius);font-size:13.5px;background:var(--surface);color:var(--fg);outline:none; }
+    .field-input:focus { border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-muted); }
+    .field-row { display:grid;grid-template-columns:1fr 1fr;gap:12px; }
+    .field-hint { font-size:12px;color:var(--muted);margin-top:4px; }
+
+    @media (max-width:1023px) { .main-content { margin-left:0; } }
+    @media (max-width:639px) { .toolbar-right { margin-left:0;width:100%; } .field-row { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <button class="btn btn-ghost btn-icon" id="menu-btn" aria-label="Menu">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+    </button>
+    <span class="topbar-logo">Audicon</span>
+    <div></div>
+  </div>
+  <div class="sidebar-overlay" id="overlay"></div>
+
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-mark">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div class="sidebar-logo-text">Audicon<span>Gestão de Infrações</span></div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="sidebar-section">Principal</div>
+        <a href="dashboard.html" class="nav-item">
+          <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+          Dashboard
+        </a>
+        <a href="condominiums.html" class="nav-item active">
+          <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg>
+          Condomínios
+        </a>
+        <div class="sidebar-section">Conta</div>
+        <a href="profile.html" class="nav-item">
+          <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          Meu Perfil
+        </a>
+        <a href="audit-log.html" class="nav-item">
+          <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Log de Auditoria
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="avatar">CA</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name">Carlos Andrade</div>
+            <div class="sidebar-user-role">Gerente · Adm. Paulista</div>
+          </div>
+          <svg class="icon" width="14" height="14" viewBox="0 0 24 24" style="color:rgba(255,255,255,0.4)"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div class="page-header-row">
+          <div>
+            <h1 class="page-title">Condomínios</h1>
+            <p class="page-subtitle">Gerencie os condomínios da sua carteira</p>
+          </div>
+          <button class="btn btn-primary" onclick="openModal()">
+            <svg class="icon" width="14" height="14" viewBox="0 0 24 24"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+            Novo Condomínio
+          </button>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <div class="toolbar">
+          <div class="search-wrap">
+            <svg class="icon" width="14" height="14" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
+            <input class="search-input" type="search" placeholder="Buscar condomínio..." id="search-input" oninput="filterTable()">
+          </div>
+          <select class="filter-select" id="city-filter" onchange="filterTable()">
+            <option value="">Todas as cidades</option>
+            <option value="São Paulo">São Paulo</option>
+            <option value="Guarulhos">Guarulhos</option>
+            <option value="Santo André">Santo André</option>
+          </select>
+          <div class="toolbar-right">
+            <span id="count-label" class="text-sm text-muted">8 condomínios</span>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <table id="condos-table">
+            <thead>
+              <tr>
+                <th>Condomínio</th>
+                <th>Endereço</th>
+                <th>Cidade</th>
+                <th>Unidades</th>
+                <th>Cadastrado em</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tbody">
+              <tr data-name="Res. Jardim Europa" data-city="São Paulo">
+                <td><div class="condo-name-cell"><div class="condo-icon-wrap"><svg class="icon" width="16" height="16" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg></div><span class="td-name">Res. Jardim Europa</span></div></td>
+                <td class="td-address">R. das Palmeiras, 450</td>
+                <td class="text-sm">São Paulo</td>
+                <td class="td-units">128</td>
+                <td class="td-date">12 jan 2024</td>
+                <td><div class="row-actions"><a href="condominium-detail.html" class="btn btn-sm btn-secondary">Ver detalhes</a><button class="btn btn-sm btn-ghost btn-icon-sm" title="Editar"><svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></td>
+              </tr>
+              <tr data-name="Ed. Parque das Flores" data-city="São Paulo">
+                <td><div class="condo-name-cell"><div class="condo-icon-wrap"><svg class="icon" width="16" height="16" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg></div><span class="td-name">Ed. Parque das Flores</span></div></td>
+                <td class="td-address">Av. Brigadeiro Faria Lima, 2.100</td>
+                <td class="text-sm">São Paulo</td>
+                <td class="td-units">96</td>
+                <td class="td-date">03 fev 2024</td>
+                <td><div class="row-actions"><a href="condominium-detail.html" class="btn btn-sm btn-secondary">Ver detalhes</a><button class="btn btn-sm btn-ghost btn-icon-sm" title="Editar"><svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></td>
+              </tr>
+              <tr data-name="Cond. Villa Bella" data-city="Guarulhos">
+                <td><div class="condo-name-cell"><div class="condo-icon-wrap"><svg class="icon" width="16" height="16" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg></div><span class="td-name">Cond. Villa Bella</span></div></td>
+                <td class="td-address">R. Sete de Setembro, 88</td>
+                <td class="text-sm">Guarulhos</td>
+                <td class="td-units">64</td>
+                <td class="td-date">19 mar 2024</td>
+                <td><div class="row-actions"><a href="condominium-detail.html" class="btn btn-sm btn-secondary">Ver detalhes</a><button class="btn btn-sm btn-ghost btn-icon-sm" title="Editar"><svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></td>
+              </tr>
+              <tr data-name="Res. Alto do Pinheiro" data-city="São Paulo">
+                <td><div class="condo-name-cell"><div class="condo-icon-wrap"><svg class="icon" width="16" height="16" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg></div><span class="td-name">Res. Alto do Pinheiro</span></div></td>
+                <td class="td-address">Al. dos Ipês, 1.450</td>
+                <td class="text-sm">São Paulo</td>
+                <td class="td-units">200</td>
+                <td class="td-date">05 abr 2024</td>
+                <td><div class="row-actions"><a href="condominium-detail.html" class="btn btn-sm btn-secondary">Ver detalhes</a><button class="btn btn-sm btn-ghost btn-icon-sm" title="Editar"><svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></td>
+              </tr>
+              <tr data-name="Ed. Serrano" data-city="Santo André">
+                <td><div class="condo-name-cell"><div class="condo-icon-wrap"><svg class="icon" width="16" height="16" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg></div><span class="td-name">Ed. Serrano</span></div></td>
+                <td class="td-address">R. Cel. Fernando Prestes, 320</td>
+                <td class="text-sm">Santo André</td>
+                <td class="td-units">48</td>
+                <td class="td-date">22 abr 2024</td>
+                <td><div class="row-actions"><a href="condominium-detail.html" class="btn btn-sm btn-secondary">Ver detalhes</a><button class="btn btn-sm btn-ghost btn-icon-sm" title="Editar"><svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></td>
+              </tr>
+              <tr data-name="Cond. Bela Vista" data-city="Guarulhos">
+                <td><div class="condo-name-cell"><div class="condo-icon-wrap"><svg class="icon" width="16" height="16" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg></div><span class="td-name">Cond. Bela Vista</span></div></td>
+                <td class="td-address">Av. Tiradentes, 750</td>
+                <td class="text-sm">Guarulhos</td>
+                <td class="td-units">80</td>
+                <td class="td-date">10 mai 2024</td>
+                <td><div class="row-actions"><a href="condominium-detail.html" class="btn btn-sm btn-secondary">Ver detalhes</a><button class="btn btn-sm btn-ghost btn-icon-sm" title="Editar"><svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></td>
+              </tr>
+              <tr data-name="Res. Morada Nova" data-city="São Paulo">
+                <td><div class="condo-name-cell"><div class="condo-icon-wrap"><svg class="icon" width="16" height="16" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg></div><span class="td-name">Res. Morada Nova</span></div></td>
+                <td class="td-address">R. Augusta, 1.200</td>
+                <td class="text-sm">São Paulo</td>
+                <td class="td-units">156</td>
+                <td class="td-date">02 jun 2024</td>
+                <td><div class="row-actions"><a href="condominium-detail.html" class="btn btn-sm btn-secondary">Ver detalhes</a><button class="btn btn-sm btn-ghost btn-icon-sm" title="Editar"><svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></td>
+              </tr>
+              <tr data-name="Ed. Grand Parc" data-city="Santo André">
+                <td><div class="condo-name-cell"><div class="condo-icon-wrap"><svg class="icon" width="16" height="16" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg></div><span class="td-name">Ed. Grand Parc</span></div></td>
+                <td class="td-address">Av. Portugal, 600</td>
+                <td class="text-sm">Santo André</td>
+                <td class="td-units">112</td>
+                <td class="td-date">15 jun 2024</td>
+                <td><div class="row-actions"><a href="condominium-detail.html" class="btn btn-sm btn-secondary">Ver detalhes</a><button class="btn btn-sm btn-ghost btn-icon-sm" title="Editar"><svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="pagination">
+            <span>Mostrando <strong id="showing-count">8</strong> de <strong>8</strong> condomínios</span>
+            <div class="page-btns">
+              <button class="page-btn active">1</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Create Condominium Modal -->
+  <div class="modal-overlay hidden" id="modal-overlay" onclick="closeModal(event)">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-head">
+        <span class="modal-title" id="modal-title">Novo Condomínio</span>
+        <button class="btn btn-ghost btn-icon-sm" onclick="closeModal()">
+          <svg class="icon" width="16" height="16" viewBox="0 0 24 24"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label class="field-label" for="f-nome">Nome do condomínio <span style="color:var(--danger)">*</span></label>
+          <input class="field-input" id="f-nome" type="text" placeholder="Ex: Residencial Jardim Europa">
+        </div>
+        <div class="field">
+          <label class="field-label" for="f-endereco">Endereço <span style="color:var(--danger)">*</span></label>
+          <input class="field-input" id="f-endereco" type="text" placeholder="Rua, número">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="f-cidade">Cidade <span style="color:var(--danger)">*</span></label>
+            <input class="field-input" id="f-cidade" type="text" placeholder="Ex: São Paulo">
+          </div>
+          <div class="field">
+            <label class="field-label" for="f-estado">Estado</label>
+            <input class="field-input" id="f-estado" type="text" placeholder="Ex: SP" maxlength="2">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="f-cep">CEP</label>
+            <input class="field-input" id="f-cep" type="text" placeholder="00000-000" maxlength="9">
+          </div>
+          <div class="field"></div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="f-regimento">Regimento interno</label>
+          <textarea class="field-input" id="f-regimento" rows="3" placeholder="Cole ou descreva o regimento interno aqui (opcional)..." style="resize:vertical"></textarea>
+          <p class="field-hint">Usado pela IA para contextualizar as análises de infração.</p>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="submitModal()">Criar Condomínio</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    function openModal() {
+      document.getElementById('modal-overlay').classList.remove('hidden');
+      document.getElementById('f-nome').focus();
+    }
+    function closeModal(e) {
+      if (!e || e.target === document.getElementById('modal-overlay')) {
+        document.getElementById('modal-overlay').classList.add('hidden');
+      }
+    }
+    function submitModal() {
+      const nome = document.getElementById('f-nome').value.trim();
+      if (!nome) { document.getElementById('f-nome').focus(); return; }
+      closeModal();
+    }
+    function filterTable() {
+      const q = document.getElementById('search-input').value.toLowerCase();
+      const city = document.getElementById('city-filter').value;
+      const rows = document.querySelectorAll('#tbody tr');
+      let count = 0;
+      rows.forEach(r => {
+        const name = r.dataset.name.toLowerCase();
+        const c = r.dataset.city;
+        const visible = name.includes(q) && (!city || c === city);
+        r.style.display = visible ? '' : 'none';
+        if (visible) count++;
+      });
+      document.getElementById('showing-count').textContent = count;
+      document.getElementById('count-label').textContent = count + ' condomínio' + (count !== 1 ? 's' : '');
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  </script>
+</body>
+</html>

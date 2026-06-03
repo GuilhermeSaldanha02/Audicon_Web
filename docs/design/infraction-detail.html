@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Infração #1042 — Audicon</title>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
+  <style>
+    svg.icon { display:inline-flex;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle; }
+    .detail-layout { display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start; }
+    .col-main { display:flex;flex-direction:column;gap:16px;min-width:0; }
+    .col-side { display:flex;flex-direction:column;gap:14px;position:sticky;top:20px; }
+
+    /* Cards */
+    .panel { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:20px; }
+    .panel-head { display:flex;align-items:center;justify-content:space-between;margin-bottom:16px; }
+    .panel-title { font-size:13.5px;font-weight:600;color:var(--fg); }
+    .panel-title-row { display:flex;align-items:center;gap:8px; }
+
+    /* Info rows */
+    .info-2col { display:grid;grid-template-columns:1fr 1fr;gap:12px 20px; }
+    .info-3col { display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px 20px; }
+    .info-item { }
+    .info-label { font-size:11.5px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px; }
+    .info-value { font-size:13.5px;color:var(--fg); }
+
+    /* Description */
+    .desc-text { font-size:14px;color:var(--fg);line-height:1.65; }
+
+    /* Image gallery */
+    .img-gallery { display:flex;gap:8px;flex-wrap:wrap;margin-top:4px; }
+    .img-thumb { width:80px;height:80px;border-radius:var(--radius);background:var(--bg);border:1px solid var(--border);overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;transition:opacity .15s; }
+    .img-thumb:hover { opacity:.85; }
+    .img-thumb svg { color:var(--muted); }
+    .img-thumb-placeholder { background:linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); }
+    .img-count-badge { position:absolute;bottom:4px;right:4px;background:rgba(15,23,42,.7);color:white;font-size:11px;border-radius:4px;padding:1px 5px; }
+
+    /* AI Analysis Panel */
+    .ai-panel { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden; }
+    .ai-panel-head { padding:14px 18px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px; }
+    .ai-panel-title { display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--fg); }
+    .ai-icon { width:24px;height:24px;border-radius:6px;background:var(--accent-muted);display:flex;align-items:center;justify-content:center; }
+    .ai-body { padding:18px; }
+
+    /* AI states */
+    .ai-state { display:none; }
+    .ai-state.active { display:block; }
+
+    /* Idle */
+    .ai-idle-content { text-align:center;padding:20px 0; }
+    .ai-idle-icon { width:40px;height:40px;border-radius:10px;background:var(--accent-muted);display:inline-flex;align-items:center;justify-content:center;color:var(--accent);margin-bottom:12px; }
+    .ai-idle-title { font-size:14px;font-weight:600;color:var(--fg);margin-bottom:6px; }
+    .ai-idle-desc { font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:16px; }
+
+    /* Loading */
+    .ai-loading-content { text-align:center;padding:20px 0; }
+    .spinner { width:28px;height:28px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .ai-loading-status { font-size:13px;color:var(--muted); }
+    .ai-loading-steps { display:flex;flex-direction:column;gap:6px;margin-top:14px;text-align:left; }
+    .ai-step { display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted); }
+    .ai-step.done { color:var(--success); }
+    .ai-step.active { color:var(--fg);font-weight:500; }
+    .ai-step-dot { width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0; }
+    .ai-step.done .ai-step-dot { background:var(--success); }
+    .ai-step.active .ai-step-dot { background:var(--accent);box-shadow:0 0 0 3px var(--accent-muted); }
+
+    /* Done */
+    .ai-result-meta { display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border); }
+    .ai-conf-chip { padding:3px 10px;border-radius:var(--radius-pill);font-size:12px;font-weight:500; }
+    .ai-conf-high { background:var(--success-muted);color:#15803d; }
+    .ai-conf-med { background:var(--warning-muted);color:#92400e; }
+    .ai-result-time { font-size:12px;color:var(--muted);margin-left:auto; }
+    .ai-result-text { font-size:13.5px;color:var(--fg);line-height:1.65; }
+    .ai-result-text p { margin-bottom:10px; }
+    .ai-result-text p:last-child { margin-bottom:0; }
+    .ai-result-infos { display:flex;flex-direction:column;gap:8px;margin-top:14px; }
+    .ai-result-info { display:flex;gap:8px;font-size:13px; }
+    .ai-result-info .icon { color:var(--accent);flex-shrink:0;margin-top:1px; }
+    .ai-result-info-label { font-weight:500;color:var(--fg);margin-right:4px; }
+    .ai-result-footer { margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between; }
+    .ai-disclaimer { font-size:11.5px;color:var(--subtle); }
+    .ai-regen-btn { background:none;border:none;font-size:12.5px;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:4px; }
+    .ai-regen-btn:hover { color:var(--fg); }
+
+    /* PDF panel */
+    .pdf-section { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px 18px; }
+    .pdf-head { display:flex;align-items:center;justify-content:space-between;margin-bottom:10px; }
+    .pdf-title { font-size:13.5px;font-weight:600;color:var(--fg);display:flex;align-items:center;gap:7px; }
+    .pdf-icon { width:22px;height:22px;border-radius:5px;background:#fee2e2;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0; }
+    .pdf-state { display:none; }
+    .pdf-state.active { display:block; }
+    .pdf-preview-card { background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:10px;margin-bottom:12px; }
+    .pdf-preview-card svg { color:var(--danger);flex-shrink:0; }
+    .pdf-doc-info { flex:1;min-width:0; }
+    .pdf-doc-name { font-weight:500;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .pdf-doc-meta { font-size:12px;color:var(--subtle);margin-top:2px; }
+
+    /* Status change */
+    .status-select-row { display:flex;align-items:center;gap:8px; }
+    .status-sel { padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;background:var(--surface);color:var(--fg);outline:none;cursor:pointer;flex:1; }
+    .status-sel:focus { border-color:var(--accent); }
+
+    /* Edit drawer (inline) */
+    .edit-mode { display:none; }
+    .edit-mode.active { display:block; }
+    .view-mode.hidden { display:none; }
+    .field-label { display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em; }
+    .field-input { width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius);font-size:13.5px;background:var(--surface);color:var(--fg);outline:none; }
+    .field-input:focus { border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-muted); }
+    textarea.field-input { resize:vertical; }
+
+    @media (max-width:1200px) { .detail-layout{grid-template-columns:1fr;} .col-side{position:static;} }
+    @media (max-width:1023px) { .main-content{margin-left:0;} .info-3col{grid-template-columns:1fr 1fr;} }
+    @media (max-width:639px) { .info-2col,.info-3col{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <button class="btn btn-ghost btn-icon" id="menu-btn" aria-label="Menu">
+      <svg class="icon" width="18" height="18" viewBox="0 0 24 24"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+    </button>
+    <span class="topbar-logo">Audicon</span>
+    <div></div>
+  </div>
+  <div class="sidebar-overlay" id="overlay"></div>
+
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-mark">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div class="sidebar-logo-text">Audicon<span>Gestão de Infrações</span></div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="sidebar-section">Principal</div>
+        <a href="dashboard.html" class="nav-item">
+          <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+          Dashboard
+        </a>
+        <a href="condominiums.html" class="nav-item active">
+          <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg>
+          Condomínios
+        </a>
+        <div class="sidebar-section">Conta</div>
+        <a href="profile.html" class="nav-item">
+          <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          Meu Perfil
+        </a>
+        <a href="audit-log.html" class="nav-item">
+          <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
+          Log de Auditoria
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="avatar">CA</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name">Carlos Andrade</div>
+            <div class="sidebar-user-role">Gerente · Adm. Paulista</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div class="breadcrumb">
+          <a href="condominiums.html">Condomínios</a>
+          <span class="sep">/</span>
+          <a href="condominium-detail.html">Res. Jardim Europa</a>
+          <span class="sep">/</span>
+          <a href="infractions.html">Infrações</a>
+          <span class="sep">/</span>
+          <span>#1042</span>
+        </div>
+        <div class="page-header-row">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <h1 class="page-title">Infração #1042</h1>
+              <span class="badge badge-sev-media">MÉDIA</span>
+              <span class="badge badge-st-aberta" id="status-badge">ABERTA</span>
+            </div>
+            <p class="page-subtitle">Registrada em 28 mai 2025 por Ana Santos</p>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-secondary btn-sm" onclick="toggleEdit()">
+              <svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              <span id="edit-btn-label">Editar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <div class="detail-layout">
+          <!-- Main column -->
+          <div class="col-main">
+
+            <!-- Info card -->
+            <div class="panel">
+              <div class="panel-head">
+                <span class="panel-title">Dados da Infração</span>
+              </div>
+
+              <!-- View mode -->
+              <div id="view-mode" class="view-mode">
+                <div class="info-3col" style="margin-bottom:16px">
+                  <div class="info-item">
+                    <div class="info-label">Condomínio</div>
+                    <div class="info-value">Res. Jardim Europa</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Unidade</div>
+                    <div class="info-value" style="font-weight:600">201 / Bloco A</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Morador</div>
+                    <div class="info-value">Carlos Pereira</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Data da ocorrência</div>
+                    <div class="info-value mono">28 mai 2025</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Gravidade</div>
+                    <div class="info-value"><span class="badge badge-sev-media">MÉDIA</span></div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Status</div>
+                    <div class="info-value"><span class="badge badge-st-aberta">ABERTA</span></div>
+                  </div>
+                </div>
+                <div class="info-label" style="margin-bottom:6px">Descrição</div>
+                <p class="desc-text">Barulho excessivo proveniente do apartamento 201 / Bloco A após as 22h. Foram ouvidos sons altos de música e conversas em volume elevado, perturbando o descanso dos moradores vizinhos. A ocorrência foi registrada no dia 28/05/2025 às 23h15. Esta é a segunda notificação no mês para esta unidade.</p>
+              </div>
+
+              <!-- Edit mode -->
+              <div id="edit-mode" class="edit-mode">
+                <div class="info-2col" style="margin-bottom:14px">
+                  <div>
+                    <label class="field-label" for="e-unidade">Unidade</label>
+                    <select class="field-input" id="e-unidade">
+                      <option selected>201 / A — Carlos Pereira</option>
+                      <option>102 / A — Maria Oliveira</option>
+                      <option>301 / B — Ana Lima</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="field-label" for="e-data">Data da ocorrência</label>
+                    <input class="field-input" id="e-data" type="date" value="2025-05-28">
+                  </div>
+                </div>
+                <div style="margin-bottom:14px">
+                  <label class="field-label">Gravidade</label>
+                  <div style="display:flex;gap:8px">
+                    <div style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:var(--radius);text-align:center;font-size:12.5px;cursor:pointer" onclick="this.style.borderColor='var(--sev-leve)';this.style.background='var(--sev-leve-bg)'">LEVE</div>
+                    <div style="flex:1;padding:8px;border:1.5px solid var(--sev-media);background:var(--sev-media-bg);border-radius:var(--radius);text-align:center;font-size:12.5px;font-weight:600;cursor:pointer;color:#92400e">MÉDIA</div>
+                    <div style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:var(--radius);text-align:center;font-size:12.5px;cursor:pointer" onclick="this.style.borderColor='var(--sev-grave)';this.style.background='var(--sev-grave-bg)'">GRAVE</div>
+                  </div>
+                </div>
+                <div>
+                  <label class="field-label" for="e-desc">Descrição</label>
+                  <textarea class="field-input" id="e-desc" rows="5">Barulho excessivo proveniente do apartamento 201 / Bloco A após as 22h. Foram ouvidos sons altos de música e conversas em volume elevado, perturbando o descanso dos moradores vizinhos. A ocorrência foi registrada no dia 28/05/2025 às 23h15. Esta é a segunda notificação no mês para esta unidade.</textarea>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:16px">
+                  <button class="btn btn-primary btn-sm" onclick="saveEdit()">Salvar alterações</button>
+                  <button class="btn btn-secondary btn-sm" onclick="cancelEdit()">Cancelar</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Photo gallery -->
+            <div class="panel">
+              <div class="panel-head">
+                <span class="panel-title">Fotos anexadas <span style="font-weight:400;color:var(--muted)">(2)</span></span>
+                <button class="btn btn-sm btn-secondary">
+                  <svg class="icon" width="13" height="13" viewBox="0 0 24 24"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                  Adicionar foto
+                </button>
+              </div>
+              <div class="img-gallery">
+                <div class="img-thumb img-thumb-placeholder">
+                  <svg class="icon" width="20" height="20" style="position:absolute;color:rgba(255,255,255,.5)" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                  <span class="img-count-badge">foto 1</span>
+                </div>
+                <div class="img-thumb img-thumb-placeholder" style="background:linear-gradient(135deg,#cbd5e1,#94a3b8)">
+                  <svg class="icon" width="20" height="20" style="position:absolute;color:rgba(255,255,255,.5)" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                  <span class="img-count-badge">foto 2</span>
+                </div>
+                <div class="img-thumb" style="border-style:dashed;cursor:pointer" onclick="document.getElementById('add-photo').click()">
+                  <svg class="icon" width="18" height="18" viewBox="0 0 24 24"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                </div>
+                <input type="file" id="add-photo" accept="image/*" multiple style="display:none">
+              </div>
+            </div>
+
+            <!-- AI Analysis -->
+            <div class="ai-panel">
+              <div class="ai-panel-head">
+                <div class="ai-panel-title">
+                  <div class="ai-icon">
+                    <svg class="icon" width="13" height="13" viewBox="0 0 24 24" style="color:var(--accent)"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+                  </div>
+                  Análise por IA (Gemini)
+                </div>
+                <span id="ai-status-badge" class="badge badge-st-aberta" style="font-size:11.5px">Pendente</span>
+              </div>
+              <div class="ai-body">
+                <!-- Idle state -->
+                <div id="ai-idle" class="ai-state active">
+                  <div class="ai-idle-content">
+                    <div class="ai-idle-icon">
+                      <svg class="icon" width="20" height="20" viewBox="0 0 24 24"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                    </div>
+                    <div class="ai-idle-title">Analisar com IA</div>
+                    <p class="ai-idle-desc">O Gemini vai analisar a descrição e as fotos, verificar o regimento do condomínio e gerar um parecer técnico com recomendação de penalidade.</p>
+                    <button class="btn btn-primary" onclick="startAI()">
+                      <svg class="icon" width="14" height="14" viewBox="0 0 24 24"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                      Iniciar análise
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Loading state -->
+                <div id="ai-loading" class="ai-state">
+                  <div class="ai-loading-content">
+                    <div class="spinner"></div>
+                    <p class="ai-loading-status" id="ai-loading-msg">Analisando dados da infração...</p>
+                    <div class="ai-loading-steps">
+                      <div class="ai-step done" id="step1"><div class="ai-step-dot"></div>Lendo dados da infração e imagens</div>
+                      <div class="ai-step active" id="step2"><div class="ai-step-dot"></div>Consultando regimento do condomínio</div>
+                      <div class="ai-step" id="step3"><div class="ai-step-dot"></div>Gerando parecer técnico</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Done state -->
+                <div id="ai-done" class="ai-state">
+                  <div class="ai-result-meta">
+                    <span class="ai-conf-chip ai-conf-high">Alta confiança</span>
+                    <span class="badge badge-sev-media">MÉDIA</span>
+                    <span class="ai-result-time">Gerado em 28 mai 2025, 23h42</span>
+                  </div>
+                  <div class="ai-result-text">
+                    <p>Com base na descrição do ocorrido e nas imagens anexadas, confirma-se que houve perturbação do sossego alheio após o horário de silêncio estabelecido pelo regimento interno (22h). A gravidade <strong>MÉDIA</strong> está adequada, considerando que se trata da segunda ocorrência registrada para esta unidade no período de 30 dias.</p>
+                    <p>O artigo 14º do regimento interno do condomínio proíbe expressamente ruídos perturbadores após as 22h, prevendo advertência escrita na primeira ocorrência e multa correspondente a 1 (um) salário-mínimo para reincidências.</p>
+                  </div>
+                  <div class="ai-result-infos">
+                    <div class="ai-result-info">
+                      <svg class="icon" width="14" height="14" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                      <span><span class="ai-result-info-label">Artigo infringido:</span>Art. 14º — Perturbação do sossego após 22h</span>
+                    </div>
+                    <div class="ai-result-info">
+                      <svg class="icon" width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                      <span><span class="ai-result-info-label">Recomendação:</span>Multa de 1 salário-mínimo (reincidência) + notificação formal</span>
+                    </div>
+                  </div>
+                  <div class="ai-result-footer">
+                    <span class="ai-disclaimer">Parecer gerado automaticamente — revisar antes de emitir</span>
+                    <button class="ai-regen-btn" onclick="startAI()">
+                      <svg class="icon" width="12" height="12" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                      Regerar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Side column -->
+          <div class="col-side">
+
+            <!-- Status -->
+            <div class="panel" style="padding:16px 18px">
+              <div class="panel-title" style="margin-bottom:12px">Alterar Status</div>
+              <div class="status-select-row">
+                <select class="status-sel" id="status-select" onchange="updateStatus(this.value)">
+                  <option value="ABERTA" selected>Aberta</option>
+                  <option value="EM_ANALISE">Em análise</option>
+                  <option value="NOTIFICADA">Notificada</option>
+                  <option value="FECHADA">Fechada</option>
+                </select>
+                <button class="btn btn-primary btn-sm" onclick="updateStatus(document.getElementById('status-select').value)">Salvar</button>
+              </div>
+            </div>
+
+            <!-- PDF -->
+            <div class="pdf-section">
+              <div class="pdf-head">
+                <div class="pdf-title">
+                  <div class="pdf-icon">
+                    <svg class="icon" width="12" height="12" style="color:#dc2626" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  </div>
+                  Documento PDF
+                </div>
+              </div>
+
+              <!-- PDF idle -->
+              <div id="pdf-idle" class="pdf-state active">
+                <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Gere o documento oficial de notificação para esta infração.</p>
+                <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="generatePDF()">
+                  <svg class="icon" width="14" height="14" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  Gerar PDF
+                </button>
+              </div>
+
+              <!-- PDF generating -->
+              <div id="pdf-gen" class="pdf-state">
+                <div style="text-align:center;padding:12px 0">
+                  <div class="spinner" style="width:20px;height:20px;border-width:2px;margin-bottom:8px"></div>
+                  <p style="font-size:13px;color:var(--muted)">Montando documento...</p>
+                </div>
+              </div>
+
+              <!-- PDF ready -->
+              <div id="pdf-ready" class="pdf-state">
+                <div class="pdf-preview-card">
+                  <svg class="icon" width="20" height="20" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  <div class="pdf-doc-info">
+                    <div class="pdf-doc-name">notificacao-1042.pdf</div>
+                    <div class="pdf-doc-meta">Gerado em 28 mai 2025 · 84 KB</div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:6px">
+                  <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center" onclick="downloadPDF()">
+                    <svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                    Baixar
+                  </button>
+                  <button class="btn btn-secondary btn-sm" onclick="generatePDF()">Regerar</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Meta -->
+            <div class="panel" style="padding:16px 18px">
+              <div class="panel-title" style="margin-bottom:12px">Histórico</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;gap:8px;align-items:flex-start">
+                  <div class="avatar avatar-sm" style="background:var(--accent-muted);color:var(--accent);flex-shrink:0;margin-top:1px">AS</div>
+                  <div>
+                    <p style="font-size:12.5px;color:var(--fg)"><strong>Ana Santos</strong> registrou a infração</p>
+                    <p style="font-size:12px;color:var(--muted)">28 mai 2025, 23h20</p>
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:flex-start">
+                  <div class="avatar avatar-sm" style="background:var(--accent-muted);color:var(--accent);flex-shrink:0;margin-top:1px">CA</div>
+                  <div>
+                    <p style="font-size:12.5px;color:var(--fg)"><strong>Carlos Andrade</strong> alterou status para <span class="badge badge-st-analise" style="font-size:11px">EM ANÁLISE</span></p>
+                    <p style="font-size:12px;color:var(--muted)">29 mai 2025, 09h05</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    // AI state machine
+    function startAI() {
+      setAI('loading');
+      let step = 1;
+      const msgs = ['Analisando dados da infração...', 'Consultando regimento do condomínio...', 'Gerando parecer técnico...'];
+      const steps = ['step1','step2','step3'];
+
+      function advance() {
+        if (step >= 3) {
+          setAI('done');
+          document.getElementById('ai-status-badge').textContent = 'Concluído';
+          document.getElementById('ai-status-badge').className = 'badge badge-st-fechada';
+          return;
+        }
+        document.getElementById(steps[step-1]).className = 'ai-step done';
+        document.getElementById(steps[step]).className = 'ai-step active';
+        document.getElementById('ai-loading-msg').textContent = msgs[step];
+        step++;
+        setTimeout(advance, 1000);
+      }
+      setTimeout(advance, 900);
+    }
+
+    function setAI(state) {
+      ['idle','loading','done'].forEach(s => {
+        document.getElementById('ai-'+s).classList.toggle('active', s === state);
+      });
+    }
+
+    // PDF state machine
+    function generatePDF() {
+      setPDF('gen');
+      setTimeout(() => {
+        setPDF('ready');
+      }, 1800);
+    }
+    function setPDF(state) {
+      ['idle','gen','ready'].forEach(s => {
+        document.getElementById('pdf-'+s).classList.toggle('active', s === state);
+      });
+    }
+    function downloadPDF() {
+      const a = document.createElement('a');
+      a.href = 'data:text/plain;charset=utf-8,Documento de Notificação — Infração #1042';
+      a.download = 'notificacao-1042.pdf';
+      a.click();
+    }
+
+    // Edit mode
+    function toggleEdit() {
+      const isEditing = document.getElementById('edit-mode').classList.contains('active');
+      if (isEditing) { cancelEdit(); } else { startEdit(); }
+    }
+    function startEdit() {
+      document.getElementById('view-mode').classList.add('hidden');
+      document.getElementById('edit-mode').classList.add('active');
+      document.getElementById('edit-btn-label').textContent = 'Cancelar';
+    }
+    function saveEdit() {
+      document.getElementById('view-mode').classList.remove('hidden');
+      document.getElementById('edit-mode').classList.remove('active');
+      document.getElementById('edit-btn-label').textContent = 'Editar';
+    }
+    function cancelEdit() {
+      document.getElementById('view-mode').classList.remove('hidden');
+      document.getElementById('edit-mode').classList.remove('active');
+      document.getElementById('edit-btn-label').textContent = 'Editar';
+    }
+
+    // Status update
+    const statusLabels = { ABERTA:'ABERTA', EM_ANALISE:'EM ANÁLISE', NOTIFICADA:'NOTIFICADA', FECHADA:'FECHADA' };
+    const statusClasses = { ABERTA:'badge-st-aberta', EM_ANALISE:'badge-st-analise', NOTIFICADA:'badge-st-notificada', FECHADA:'badge-st-fechada' };
+    function updateStatus(val) {
+      const badge = document.getElementById('status-badge');
+      badge.textContent = statusLabels[val];
+      badge.className = 'badge ' + statusClasses[val];
+    }
+  </script>
+</body>
+</html>
