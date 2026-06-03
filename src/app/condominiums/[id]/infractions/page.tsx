@@ -20,7 +20,8 @@ import {
 } from '@/components/ui/dialog';
 import { api, ApiEnvelope, PaginatedResult } from '@/lib/api';
 import { useApiMutation } from '@/hooks/use-api-mutation';
-import { Infraction, Unit, InfractionStatus, Condominium } from '@/lib/types';
+import { Infraction, Unit, InfractionStatus, InfractionSeverity, Condominium } from '@/lib/types';
+import { SeverityBadge } from '@/components/severity-badge';
 import { AppShell } from '@/components/app-shell';
 import { RequireAuth } from '@/components/require-auth';
 import { useAuth } from '@/lib/auth-context';
@@ -39,9 +40,16 @@ const STATUS_BADGE_CLASS: Record<InfractionStatus, string> = {
   sent:     'bg-[var(--st-fechada-bg)] text-[var(--st-fechada)]',
 };
 
+const SEVERITY_OPTIONS: { value: InfractionSeverity; label: string }[] = [
+  { value: 'LEVE',  label: 'Leve' },
+  { value: 'MEDIA', label: 'Média' },
+  { value: 'GRAVE', label: 'Grave' },
+];
+
 const infractionSchema = z.object({
   description: z.string().min(10, 'Descreva a infração com pelo menos 10 caracteres'),
   unitId: z.string().min(1, 'Selecione uma unidade'),
+  severity: z.enum(['LEVE', 'MEDIA', 'GRAVE'] as const, { error: 'Selecione a gravidade' }),
 });
 type InfractionForm = z.infer<typeof infractionSchema>;
 
@@ -67,6 +75,7 @@ function InfractionsContent() {
   const [exporting, setExporting] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<InfractionStatus | ''>('');
+  const [severityFilter, setSeverityFilter] = useState<InfractionSeverity | ''>('');
   const [unitFilter, setUnitFilter] = useState<string>('');
   const [page, setPage] = useState(1);
   const LIMIT = 20;
@@ -116,6 +125,7 @@ function InfractionsContent() {
       const res = await api.post<ApiEnvelope<Infraction>>('/infractions', {
         description: form.description,
         unitId: Number(form.unitId),
+        severity: form.severity,
       });
       return res.data.data;
     },
@@ -153,13 +163,15 @@ function InfractionsContent() {
     }
   }
 
-  // Client-side status filter (unit is already server-filtered)
+  // Client-side status/severity filter (unit is already server-filtered)
+  // Note: severity filter is client-side; backend does not support filtering by severity.
   const filtered = infractions?.data.filter((inf) => {
     const matchStatus = !statusFilter || inf.status === statusFilter;
+    const matchSeverity = !severityFilter || inf.severity === severityFilter;
     const matchSearch = !search ||
       inf.description.toLowerCase().includes(search.toLowerCase()) ||
       String(inf.id).includes(search);
-    return matchStatus && matchSearch;
+    return matchStatus && matchSeverity && matchSearch;
   }) ?? [];
 
   const totalPages = infractions ? Math.max(1, Math.ceil(infractions.total / LIMIT)) : 1;
@@ -236,6 +248,19 @@ function InfractionsContent() {
                     {errors.unitId && <p className="text-xs text-destructive">{errors.unitId.message}</p>}
                   </div>
                   <div className="space-y-1.5">
+                    <Label>Gravidade</Label>
+                    <select
+                      {...register('severity')}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="">Selecione a gravidade...</option>
+                      {SEVERITY_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                    {errors.severity && <p className="text-xs text-destructive">{errors.severity.message}</p>}
+                  </div>
+                  <div className="space-y-1.5">
                     <Label>Descrição da ocorrência</Label>
                     <Textarea
                       placeholder="Descreva o que aconteceu..."
@@ -295,6 +320,16 @@ function InfractionsContent() {
               <option key={s} value={s}>{STATUS_LABEL[s]}</option>
             ))}
           </select>
+          <select
+            value={severityFilter}
+            onChange={(e) => { setSeverityFilter(e.target.value as InfractionSeverity | ''); setPage(1); }}
+            className="rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="">Todas as gravidades</option>
+            {SEVERITY_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -341,6 +376,7 @@ function InfractionsContent() {
                   <th className="px-4 py-3 text-left">ID</th>
                   <th className="px-4 py-3 text-left">Descrição</th>
                   <th className="px-4 py-3 text-left hidden sm:table-cell">Data</th>
+                  <th className="px-4 py-3 text-left hidden md:table-cell">Gravidade</th>
                   <th className="px-4 py-3 text-left">Status</th>
                   <th className="px-4 py-3 text-right" />
                 </tr>
@@ -360,6 +396,9 @@ function InfractionsContent() {
                       {inf.occurrenceDate
                         ? new Date(inf.occurrenceDate).toLocaleDateString('pt-BR')
                         : '—'}
+                    </td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      <SeverityBadge severity={inf.severity} />
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${STATUS_BADGE_CLASS[inf.status]}`}>
