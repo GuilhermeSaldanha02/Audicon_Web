@@ -18,7 +18,8 @@ import {
 } from '@/components/ui/dialog';
 import { api, ApiEnvelope, PaginatedResult } from '@/lib/api';
 import { useApiMutation } from '@/hooks/use-api-mutation';
-import { Infraction, Unit, InfractionStatus } from '@/lib/types';
+import { Infraction, Unit, InfractionStatus, InfractionSeverity } from '@/lib/types';
+import { SeverityBadge } from '@/components/severity-badge';
 import { BrandHeader } from '@/components/brand-header';
 import { RequireAuth } from '@/components/require-auth';
 
@@ -40,8 +41,15 @@ function ordinal(n: number): string {
   return `${n}ª`;
 }
 
+const SEVERITY_OPTIONS: { value: InfractionSeverity; label: string }[] = [
+  { value: 'LEVE',  label: 'Leve' },
+  { value: 'MEDIA', label: 'Média' },
+  { value: 'GRAVE', label: 'Grave' },
+];
+
 const infractionSchema = z.object({
   description: z.string().min(10, 'Descreva a infração com pelo menos 10 caracteres'),
+  severity: z.enum(['LEVE', 'MEDIA', 'GRAVE'] as const, { error: 'Selecione a gravidade' }),
 });
 
 type InfractionForm = z.infer<typeof infractionSchema>;
@@ -113,6 +121,7 @@ function InfractionsContent() {
       const res = await api.post<ApiEnvelope<Infraction>>('/infractions', {
         description: form.description,
         unitId: Number(unitId),
+        severity: form.severity,
       });
       return res.data.data;
     },
@@ -172,6 +181,19 @@ function InfractionsContent() {
               <DialogContent>
                 <DialogHeader><DialogTitle>Registrar infração</DialogTitle></DialogHeader>
                 <form onSubmit={handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label>Gravidade</Label>
+                    <select
+                      {...register('severity')}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="">Selecione a gravidade...</option>
+                      {SEVERITY_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                    {errors.severity && <p className="text-xs text-destructive">{errors.severity.message}</p>}
+                  </div>
                   <div className="space-y-1.5">
                     <Label>Descrição da ocorrência</Label>
                     <Textarea
@@ -237,13 +259,14 @@ function InfractionsContent() {
                             : 'Sem data'}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                         {reincidencia > 1 && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-800">
                             <AlertTriangle className="h-3 w-3" />
                             {ordinal(reincidencia)} ocorrência
                           </span>
                         )}
+                        <SeverityBadge severity={inf.severity} />
                         <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_BADGE[inf.status]}`}>
                           {STATUS_LABEL[inf.status]}
                         </span>
