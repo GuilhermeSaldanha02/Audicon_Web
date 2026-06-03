@@ -21,13 +21,15 @@ import { api, ApiEnvelope } from '@/lib/api';
 import { useApiMutation } from '@/hooks/use-api-mutation';
 import { useAuth } from '@/lib/auth-context';
 import { Condominium, Unit } from '@/lib/types';
-import { BrandHeader } from '@/components/brand-header';
+import { AppShell } from '@/components/app-shell';
 import { RequireAuth } from '@/components/require-auth';
 
 export default function CondominiumDetailPage() {
   return (
     <RequireAuth>
-      <CondominiumDetailContent />
+      <AppShell>
+        <CondominiumDetailContent />
+      </AppShell>
     </RequireAuth>
   );
 }
@@ -60,7 +62,9 @@ function CondominiumDetailContent() {
   const [editCondoOpen, setEditCondoOpen] = useState(false);
   const [editUnit, setEditUnit] = useState<Unit | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const isMaster = !!useAuth().claims?.isMaster;
+  const { claims } = useAuth();
+  const isMaster = !!claims?.isMaster;
+  const isGerente = claims?.role === 'GERENTE';
 
   const { data: condominium, isLoading: loadingCondominium } = useQuery({
     queryKey: ['condominium', condominiumId],
@@ -219,45 +223,64 @@ function CondominiumDetailContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
-        <BrandHeader />
+    <div className="mx-auto max-w-[var(--content-max)] px-6 py-8 space-y-8">
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-1 text-sm text-muted-foreground">
+        <button
+          onClick={() => router.push('/condominiums')}
+          className="hover:text-foreground transition-colors cursor-pointer"
+        >
+          Condomínios
+        </button>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-foreground font-medium truncate max-w-xs">
+          {condominium?.name ?? '...'}
+        </span>
+      </nav>
 
-        {/* Header */}
-        <div className="flex items-start gap-4">
-          <Button
-            variant="outline" size="sm"
-            onClick={() => router.push('/condominiums')}
-            className="gap-1.5 cursor-pointer mt-1"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Voltar
-          </Button>
-          <div className="flex-1 min-w-0">
-            {loadingCondominium ? (
-              <div className="h-8 w-64 rounded bg-muted animate-pulse" />
-            ) : (
-              <>
-                <div className="flex items-center gap-3 mb-1">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 shrink-0">
-                    <Building2 className="h-5 w-5 text-primary" />
-                  </div>
-                  <h1 className="text-2xl font-bold text-foreground truncate">{condominium?.name}</h1>
+      {/* Header */}
+      <div className="flex items-start gap-4">
+        <Button
+          variant="outline" size="sm"
+          onClick={() => router.push('/condominiums')}
+          className="gap-1.5 cursor-pointer mt-1"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Voltar
+        </Button>
+        <div className="flex-1 min-w-0">
+          {loadingCondominium ? (
+            <div className="h-8 w-64 rounded bg-muted animate-pulse" />
+          ) : (
+            <>
+              <div className="flex items-center gap-3 mb-1">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+                  <Building2 className="h-5 w-5 text-primary" />
                 </div>
-                <div className="flex flex-wrap items-center gap-4 pl-0.5">
+                <h1 className="text-2xl font-bold text-foreground truncate">{condominium?.name}</h1>
+              </div>
+              <div className="flex flex-wrap items-center gap-4 pl-0.5">
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Hash className="h-3 w-3" />{condominium?.cnpj}
+                </span>
+                {condominium?.address && (
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Hash className="h-3 w-3" />{condominium?.cnpj}
+                    <MapPin className="h-3 w-3 shrink-0" />{condominium.address}
                   </span>
-                  {condominium?.address && (
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <MapPin className="h-3 w-3 shrink-0" />{condominium.address}
-                    </span>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-          {condominium && (
-            <div className="flex items-center gap-2 mt-1 shrink-0">
+                )}
+              </div>
+            </>
+          )}
+        </div>
+        {condominium && (
+          <div className="flex items-center gap-2 mt-1 shrink-0 flex-wrap">
+            <Button
+              variant="outline" size="sm"
+              onClick={() => router.push(`/condominiums/${condominiumId}/infractions`)}
+              className="gap-1.5 cursor-pointer"
+            >
+              <AlertTriangle className="h-3.5 w-3.5" /> Ver Infrações
+            </Button>
+            {isGerente && (
               <Button
                 variant="outline" size="sm"
                 onClick={openEditCondo}
@@ -265,41 +288,43 @@ function CondominiumDetailContent() {
               >
                 <Pencil className="h-3.5 w-3.5" /> Editar
               </Button>
-              {isMaster && (
-                <Button
-                  variant="outline" size="sm"
-                  onClick={() => setDeleteCondoOpen(true)}
-                  className="gap-1.5 cursor-pointer text-destructive hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <Trash2 className="h-3.5 w-3.5" /> Excluir
-                </Button>
+            )}
+            {isMaster && (
+              <Button
+                variant="outline" size="sm"
+                onClick={() => setDeleteCondoOpen(true)}
+                className="gap-1.5 cursor-pointer text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Excluir
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Regimento */}
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <FileText className="h-4 w-4 text-muted-foreground" />
+          <h2 className="font-semibold text-foreground">Regimento Interno</h2>
+        </div>
+        {condominium?.regimentoFilename ? (
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+            <FileText className="h-4 w-4 text-accent shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">
+                {condominium.regimentoFilename}
+              </p>
+              {condominium.regimentoUploadedAt && (
+                <p className="text-xs text-muted-foreground">
+                  Enviado em {new Date(condominium.regimentoUploadedAt).toLocaleDateString('pt-BR')}
+                </p>
               )}
             </div>
-          )}
-        </div>
-
-        {/* Regimento */}
-        <div className="rounded-xl border border-border bg-card p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <FileText className="h-4 w-4 text-muted-foreground" />
-            <h2 className="font-semibold text-foreground">Regimento Interno</h2>
-          </div>
-          {condominium?.regimentoFilename ? (
-            <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
-              <FileText className="h-4 w-4 text-accent shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
-                  {condominium.regimentoFilename}
-                </p>
-                {condominium.regimentoUploadedAt && (
-                  <p className="text-xs text-muted-foreground">
-                    Enviado em {new Date(condominium.regimentoUploadedAt).toLocaleDateString('pt-BR')}
-                  </p>
-                )}
-              </div>
-              <Button variant="outline" size="sm" onClick={downloadRegimento} className="gap-1.5 cursor-pointer shrink-0">
-                <Download className="h-3.5 w-3.5" /> Baixar
-              </Button>
+            <Button variant="outline" size="sm" onClick={downloadRegimento} className="gap-1.5 cursor-pointer shrink-0">
+              <Download className="h-3.5 w-3.5" /> Baixar
+            </Button>
+            {isGerente && (
               <Button
                 variant="outline" size="sm"
                 disabled={deleteRegimento.isPending}
@@ -308,39 +333,45 @@ function CondominiumDetailContent() {
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm text-muted-foreground">
-                Nenhum regimento cadastrado. A IA usará análise genérica.
-              </p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="application/pdf"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-              <Button
-                variant="outline" size="sm"
-                disabled={uploadRegimento.isPending}
-                onClick={() => fileInputRef.current?.click()}
-                className="gap-1.5 cursor-pointer shrink-0"
-              >
-                <Upload className="h-3.5 w-3.5" />
-                {uploadRegimento.isPending ? 'Enviando...' : 'Enviar PDF'}
-              </Button>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              Nenhum regimento cadastrado. A IA usará análise genérica.
+            </p>
+            {isGerente && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <Button
+                  variant="outline" size="sm"
+                  disabled={uploadRegimento.isPending}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="gap-1.5 cursor-pointer shrink-0"
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  {uploadRegimento.isPending ? 'Enviando...' : 'Enviar PDF'}
+                </Button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
-        {/* Units */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Home className="h-4 w-4 text-muted-foreground" />
-              <h2 className="font-semibold text-foreground">Unidades</h2>
-            </div>
+      {/* Units */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Home className="h-4 w-4 text-muted-foreground" />
+            <h2 className="font-semibold text-foreground">Unidades</h2>
+          </div>
+          {isGerente && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger render={
                 <Button className="gap-2 cursor-pointer" size="sm">
@@ -375,33 +406,35 @@ function CondominiumDetailContent() {
                 </form>
               </DialogContent>
             </Dialog>
+          )}
+        </div>
+
+        {loadingUnits && (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {[1,2,3].map(i => <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />)}
           </div>
+        )}
 
-          {loadingUnits && (
+        {units && units.length === 0 && (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-12 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted mb-3">
+              <Home className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <p className="font-medium text-foreground text-sm">Nenhuma unidade cadastrada</p>
+            <p className="text-xs text-muted-foreground mt-1">Adicione unidades para registrar infrações.</p>
+          </div>
+        )}
+
+        {units && units.length > 0 && (
+          <>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {[1,2,3].map(i => <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />)}
-            </div>
-          )}
-
-          {units && units.length === 0 && (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-12 text-center">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted mb-3">
-                <Home className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <p className="font-medium text-foreground text-sm">Nenhuma unidade cadastrada</p>
-              <p className="text-xs text-muted-foreground mt-1">Adicione unidades para registrar infrações.</p>
-            </div>
-          )}
-
-          {units && units.length > 0 && (
-            <>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {units.map((u) => (
-                  <div
-                    key={u.id}
-                    className="group relative rounded-xl border border-border bg-card p-4 transition-all duration-200 hover:border-accent/40 hover:shadow-md"
-                  >
-                    {/* Edit button overlay */}
+              {units.map((u) => (
+                <div
+                  key={u.id}
+                  className="group relative rounded-xl border border-border bg-card p-4 transition-all duration-200 hover:border-accent/40 hover:shadow-md"
+                >
+                  {/* Edit button overlay — only GERENTE */}
+                  {isGerente && (
                     <button
                       onClick={(e) => { e.stopPropagation(); openEditUnit(u); }}
                       className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-muted cursor-pointer"
@@ -409,39 +442,39 @@ function CondominiumDetailContent() {
                     >
                       <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
                     </button>
-                    <button
-                      onClick={() => router.push(`/condominiums/${condominiumId}/units/${u.id}/infractions`)}
-                      className="w-full text-left cursor-pointer"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                          <Home className="h-4 w-4 text-primary" />
+                  )}
+                  <button
+                    onClick={() => router.push(`/condominiums/${condominiumId}/units/${u.id}/infractions`)}
+                    className="w-full text-left cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                        <Home className="h-4 w-4 text-primary" />
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 mt-1" />
+                    </div>
+                    <p className="font-semibold text-foreground mb-0.5">{u.identifier}</p>
+                    <p className="text-sm text-muted-foreground mb-2">{u.ownerName}</p>
+                    <div className="space-y-1">
+                      {u.residentEmail && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Mail className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{u.residentEmail}</span>
                         </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 mt-1" />
-                      </div>
-                      <p className="font-semibold text-foreground mb-0.5">{u.identifier}</p>
-                      <p className="text-sm text-muted-foreground mb-2">{u.ownerName}</p>
-                      <div className="space-y-1">
-                        {u.residentEmail && (
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <Mail className="h-3 w-3 shrink-0" />
-                            <span className="truncate">{u.residentEmail}</span>
-                          </div>
-                        )}
-                        {u.residentPhone && (
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <Phone className="h-3 w-3 shrink-0" />{u.residentPhone}
-                          </div>
-                        )}
-                      </div>
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">{units.length} unidade(s)</p>
-            </>
-          )}
-        </div>
+                      )}
+                      {u.residentPhone && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Phone className="h-3 w-3 shrink-0" />{u.residentPhone}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">{units.length} unidade(s)</p>
+          </>
+        )}
       </div>
 
       {/* Edit condominium dialog */}
