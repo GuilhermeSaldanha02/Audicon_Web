@@ -165,12 +165,13 @@ function DashboardContent() {
 
   // Fetch infractions for severity aggregation (client-side).
   // Note: GET /dashboard does not return severity data; we aggregate from the
-  // infraction list. Fetches up to 200 infractions of the current company scope.
+  // infraction list. limit=100 é o máximo aceito pela paginação do backend
+  // (PaginationDto @Max(100)); o donut agrega até 100 infrações do escopo.
   const { data: infractionsForSeverity } = useQuery({
     queryKey: ['infractions-severity-dashboard'],
     queryFn: async () => {
       const res = await api.get<ApiEnvelope<PaginatedResult<Infraction>>>(
-        '/infractions?limit=200',
+        '/infractions?limit=100',
       );
       return res.data.data;
     },
