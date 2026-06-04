@@ -15,6 +15,7 @@ import {
 import { api, ApiEnvelope } from '@/lib/api';
 import { useApiMutation } from '@/hooks/use-api-mutation';
 import { Infraction, InfractionStatus } from '@/lib/types';
+import { SeverityBadge } from '@/components/severity-badge';
 import { InfractionImages } from '@/components/infraction-images';
 import { NotificationHistory } from '@/components/notification-history';
 import { BrandHeader } from '@/components/brand-header';
@@ -176,11 +177,12 @@ function InfractionDetailContent() {
           >
             <ArrowLeft className="h-3.5 w-3.5" /> Voltar
           </Button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-bold text-foreground">Infração #{infraction.id}</h1>
             <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${STATUS_BADGE[infraction.status]}`}>
               {STATUS_LABEL[infraction.status]}
             </span>
+            <SeverityBadge severity={infraction.severity} className="text-sm px-3 py-1" />
           </div>
         </div>
 

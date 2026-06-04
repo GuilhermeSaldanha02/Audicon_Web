@@ -20,7 +20,8 @@ import {
 } from '@/components/ui/dialog';
 import { api, ApiEnvelope } from '@/lib/api';
 import { useApiMutation } from '@/hooks/use-api-mutation';
-import { Infraction, InfractionStatus, Condominium } from '@/lib/types';
+import { Infraction, InfractionStatus, InfractionSeverity, Condominium } from '@/lib/types';
+import { SeverityBadge } from '@/components/severity-badge';
 import { InfractionImages } from '@/components/infraction-images';
 import { NotificationHistory } from '@/components/notification-history';
 import { AppShell } from '@/components/app-shell';
@@ -41,8 +42,15 @@ const STATUS_BADGE_CLASS: Record<InfractionStatus, string> = {
   sent:     'bg-[var(--st-fechada-bg)] text-[var(--st-fechada)]',
 };
 
+const SEVERITY_OPTIONS: { value: InfractionSeverity; label: string }[] = [
+  { value: 'LEVE',  label: 'Leve' },
+  { value: 'MEDIA', label: 'Média' },
+  { value: 'GRAVE', label: 'Grave' },
+];
+
 const editSchema = z.object({
   description: z.string().min(5, 'Mínimo 5 caracteres'),
+  severity: z.enum(['LEVE', 'MEDIA', 'GRAVE'] as const).optional(),
 });
 type EditForm = z.infer<typeof editSchema>;
 
@@ -92,7 +100,10 @@ function InfractionDetailContent() {
   });
 
   function openEdit() {
-    if (infraction) resetEdit({ description: infraction.description });
+    if (infraction) resetEdit({
+      description: infraction.description,
+      severity: infraction.severity ?? undefined,
+    });
     setEditOpen(true);
   }
 
@@ -256,11 +267,12 @@ function InfractionDetailContent() {
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Voltar
         </Button>
-        <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="flex items-center gap-3 flex-1 min-w-0 flex-wrap">
           <h1 className="text-2xl font-bold text-foreground">Infração #{infraction.id}</h1>
           <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium whitespace-nowrap ${STATUS_BADGE_CLASS[infraction.status]}`}>
             {STATUS_LABEL[infraction.status]}
           </span>
+          <SeverityBadge severity={infraction.severity} className="text-sm px-3 py-1" />
         </div>
         {canEdit && (
           <div className="flex items-center gap-2 shrink-0">
@@ -369,6 +381,12 @@ function InfractionDetailContent() {
                   </span>
                 </dd>
               </div>
+              {infraction.severity && (
+                <div className="flex justify-between gap-2">
+                  <dt className="text-muted-foreground">Gravidade</dt>
+                  <dd><SeverityBadge severity={infraction.severity} /></dd>
+                </div>
+              )}
               {infraction.unit && (
                 <div className="flex justify-between gap-2">
                   <dt className="text-muted-foreground">Unidade</dt>
@@ -518,6 +536,18 @@ function InfractionDetailContent() {
         <DialogContent>
           <DialogHeader><DialogTitle>Editar infração</DialogTitle></DialogHeader>
           <form onSubmit={handleEditSubmit((d) => editMutation.mutate(d))} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Gravidade</Label>
+              <select
+                {...registerEdit('severity')}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="">Não definida</option>
+                {SEVERITY_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
             <div className="space-y-1.5">
               <Label>Descrição</Label>
               <Textarea rows={4} {...registerEdit('description')} />

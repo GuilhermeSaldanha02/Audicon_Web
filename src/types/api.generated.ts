@@ -221,7 +221,10 @@ export interface paths {
         /** Listar condomínios do usuário autenticado */
         get: operations["CondominiumsController_findAll"];
         put?: never;
-        /** Criar condomínio para uma empresa (apenas master) */
+        /**
+         * Criar condomínio (master para qualquer empresa; gerente na sua)
+         * @description MASTER cria para qualquer empresa (companyId no body, obrigatório). GERENTE cria apenas na própria empresa (companyId vem do token, o do body é ignorado). FUNCIONARIO não pode criar.
+         */
         post: operations["CondominiumsController_create"];
         delete?: never;
         options?: never;
@@ -640,10 +643,10 @@ export interface components {
         };
         CreateCondominiumDto: {
             /**
-             * @description ID da empresa dona do condomínio
+             * @description ID da empresa dona do condomínio. Obrigatório para master; ignorado para gerente (usa sempre a própria empresa, do token).
              * @example 1
              */
-            companyId: number;
+            companyId?: number;
             /** @example Condomínio Jardim das Flores */
             name: string;
             /** @example 12345678000195 */
@@ -671,7 +674,7 @@ export interface components {
         };
         UpdateCondominiumDto: {
             /**
-             * @description ID da empresa dona do condomínio
+             * @description ID da empresa dona do condomínio. Obrigatório para master; ignorado para gerente (usa sempre a própria empresa, do token).
              * @example 1
              */
             companyId?: number;
@@ -720,12 +723,20 @@ export interface components {
         CreateInfractionDto: {
             /** @example Morador toca som alto após 22h. */
             description: string;
+            /**
+             * @description Gravidade classificada pelo operador (obrigatória).
+             * @example MEDIA
+             * @enum {string}
+             */
+            severity: "LEVE" | "MEDIA" | "GRAVE";
             /** @example 1 */
             unitId: number;
         };
         InfractionResponseDto: {
             id: number;
             description: string;
+            /** @enum {string} */
+            severity: "LEVE" | "MEDIA" | "GRAVE";
             formalDescription: string | null;
             suggestedPenalty: string | null;
             /** @enum {string} */
@@ -758,6 +769,12 @@ export interface components {
         UpdateInfractionDto: {
             /** @example Morador toca som alto após 22h. */
             description?: string;
+            /**
+             * @description Gravidade classificada pelo operador (obrigatória).
+             * @example MEDIA
+             * @enum {string}
+             */
+            severity?: "LEVE" | "MEDIA" | "GRAVE";
             /** @example 1 */
             unitId?: number;
         };
@@ -1321,7 +1338,14 @@ export interface operations {
                     "application/json": components["schemas"]["CondominiumResponseDto"];
                 };
             };
-            /** @description Apenas master pode criar */
+            /** @description companyId ausente (master) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Papel sem permissão (funcionário) */
             403: {
                 headers: {
                     [name: string]: unknown;

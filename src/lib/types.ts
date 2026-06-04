@@ -123,6 +123,8 @@ export type Unit = {
 
 export type InfractionStatus = 'pending' | 'analyzed' | 'approved' | 'sent';
 
+export type InfractionSeverity = 'LEVE' | 'MEDIA' | 'GRAVE';
+
 export type NotificationChannel = 'email' | 'whatsapp';
 export type NotificationStatus =
   | 'sent'
@@ -157,6 +159,7 @@ export type Infraction = {
   formalDescription?: string;
   suggestedPenalty?: string;
   status: InfractionStatus;
+  severity?: InfractionSeverity | null;
   occurrenceDate: string;
   approvedAt?: string | null;
   sentAt?: string | null;
