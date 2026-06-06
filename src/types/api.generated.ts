@@ -166,10 +166,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Listar usuários (admins/funcionários) de uma empresa (apenas master) */
+        /** Listar usuários de uma empresa (master ou gerente da empresa) */
         get: operations["CompaniesController_listUsers"];
         put?: never;
-        /** Criar usuário (funcionário/admin) para uma empresa (apenas master). Retorna senha temporária. */
+        /** Criar funcionário de uma empresa (master ou gerente da empresa). Sempre cria com role FUNCIONARIO. Retorna senha temporária. */
         post: operations["CompaniesController_createUser"];
         delete?: never;
         options?: never;
@@ -631,6 +631,13 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        CompanyUserResponseDto: {
+            id: number;
+            nome: string;
+            email: string;
+            /** @enum {string} */
+            role: "MASTER" | "GERENTE" | "FUNCIONARIO";
+        };
         UpdateCompanyDto: {
             /** @example Nova Administradora Ltda */
             name?: string;
@@ -640,6 +647,13 @@ export interface components {
         CreateEmployeeDto: {
             nome: string;
             email: string;
+        };
+        CreatedEmployeeResponseDto: {
+            id: number;
+            nome: string;
+            email: string;
+            /** @description Senha temporária gerada (mostrar uma única vez). */
+            tempPassword: string;
         };
         CreateCondominiumDto: {
             /**
@@ -1184,8 +1198,17 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Lista de usuários da empresa */
+            /** @description Lista de usuários da empresa (inclui role) */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyUserResponseDto"][];
+                };
+            };
+            /** @description Papel ou empresa sem permissão */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1215,8 +1238,17 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Usuário criado */
+            /** @description Funcionário criado (role FUNCIONARIO) */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedEmployeeResponseDto"];
+                };
+            };
+            /** @description Papel ou empresa sem permissão */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
