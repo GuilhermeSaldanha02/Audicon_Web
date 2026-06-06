@@ -194,6 +194,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/companies/{companyId}/users/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Desativar (soft-delete) um funcionário da empresa (master ou gerente da empresa). O registro permanece; o acesso é revogado. Alvo só FUNCIONARIO. */
+        delete: operations["CompaniesController_deactivateUser"];
+        options?: never;
+        head?: never;
+        /** Editar nome/e-mail de um funcionário da empresa (master ou gerente da empresa). `role` NÃO é editável (anti-escalonamento). Alvo só FUNCIONARIO. */
+        patch: operations["CompaniesController_updateUser"];
+        trace?: never;
+    };
     "/api/v1/companies/{companyId}/users/{userId}/reset-password": {
         parameters: {
             query?: never;
@@ -637,6 +655,8 @@ export interface components {
             email: string;
             /** @enum {string} */
             role: "MASTER" | "GERENTE" | "FUNCIONARIO";
+            /** @description R-16: data de desativação (soft-delete). NULL = ativo. Só aparece preenchido quando a listagem é chamada com ?includeInactive=true. */
+            deletedAt: string | null;
         };
         UpdateCompanyDto: {
             /** @example Nova Administradora Ltda */
@@ -654,6 +674,10 @@ export interface components {
             email: string;
             /** @description Senha temporária gerada (mostrar uma única vez). */
             tempPassword: string;
+        };
+        UpdateEmployeeDto: {
+            nome?: string;
+            email?: string;
         };
         CreateCondominiumDto: {
             /**
@@ -1189,7 +1213,10 @@ export interface operations {
     };
     CompaniesController_listUsers: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description R-16: inclui funcionários desativados (soft-deleted). */
+                includeInactive?: boolean;
+            };
             header?: never;
             path: {
                 companyId: number;
@@ -1283,6 +1310,96 @@ export interface operations {
         responses: {
             /** @description Lista de condomínios da empresa */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CompaniesController_deactivateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                companyId: number;
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Funcionário desativado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Papel/empresa sem permissão, ou alvo não é FUNCIONARIO */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Funcionário não encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CompaniesController_updateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                companyId: number;
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateEmployeeDto"];
+            };
+        };
+        responses: {
+            /** @description Funcionário atualizado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyUserResponseDto"];
+                };
+            };
+            /** @description Body inválido (ex.: campo `role`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Papel/empresa sem permissão, ou alvo não é FUNCIONARIO */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Funcionário não encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description E-mail já em uso */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
