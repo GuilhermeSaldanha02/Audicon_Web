@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -75,7 +74,7 @@ function RoleBadge({ role }: { role: CompanyUser['role'] }) {
 
 export default function EmployeesPage() {
   return (
-    <RequireAuth>
+    <RequireAuth role="gerente">
       <AppShell>
         <EmployeesContent />
       </AppShell>
@@ -84,8 +83,7 @@ export default function EmployeesPage() {
 }
 
 function EmployeesContent() {
-  const router = useRouter();
-  const { claims, ready } = useAuth();
+  const { claims } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [showInactive, setShowInactive] = useState(false);
@@ -95,22 +93,13 @@ function EmployeesContent() {
   const [deactivating, setDeactivating] = useState<CompanyUser | null>(null);
 
   const companyId = claims?.companyId ?? null;
-  const isGerente = claims?.role === 'GERENTE';
-
-  // Tela exclusiva do GERENTE (a sidebar só a mostra para ele). FUNCIONARIO/MASTER
-  // são mandados para fora — defesa de UI; o backend já barra por RBAC.
-  useEffect(() => {
-    if (ready && claims && !isGerente) {
-      router.replace(claims.isMaster ? '/master/companies' : '/dashboard');
-    }
-  }, [ready, claims, isGerente, router]);
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['company-users', companyId] });
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['company-users', companyId, showInactive],
-    enabled: !!companyId && isGerente,
+    enabled: !!companyId,
     queryFn: async () => {
       const res = await api.get<ApiEnvelope<CompanyUser[]>>(
         `/companies/${companyId}/users${showInactive ? '?includeInactive=true' : ''}`,
@@ -118,8 +107,6 @@ function EmployeesContent() {
       return res.data.data;
     },
   });
-
-  if (!ready || !isGerente) return null;
 
   const filtered = (data ?? []).filter((u) => {
     const q = search.toLowerCase();
