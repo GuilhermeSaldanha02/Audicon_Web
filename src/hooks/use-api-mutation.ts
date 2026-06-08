@@ -7,7 +7,9 @@ import { getErrorMessage } from '@/lib/api';
  * automaticamente em caso de falha, eliminando o `onError` repetido em cada página.
  *
  * - `errorMessage`: fallback exibido quando o backend não retorna mensagem.
- * - `onError` opcional ainda é chamado depois do toast, para lógica extra.
+ * - `onError` opcional: se retornar `true` (= "já tratei"), o toast genérico é
+ *   suprimido. Se retornar `undefined`/`false`, o toast genérico dispara normalmente.
+ *   Chamadores que não passam `onError` têm comportamento idêntico ao anterior.
  */
 export function useApiMutation<TData, TVariables = void, TError = unknown>(
   options: UseMutationOptions<TData, TError, TVariables> & {
@@ -18,8 +20,8 @@ export function useApiMutation<TData, TVariables = void, TError = unknown>(
   return useMutation<TData, TError, TVariables>({
     ...rest,
     onError: (...args: Parameters<NonNullable<typeof onError>>) => {
-      toast.error(getErrorMessage(args[0], errorMessage));
-      onError?.(...args);
+      const handled = onError?.(...args);
+      if (!handled) toast.error(getErrorMessage(args[0], errorMessage));
     },
   });
 }
