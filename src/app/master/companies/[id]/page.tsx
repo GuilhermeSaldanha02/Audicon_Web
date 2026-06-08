@@ -185,7 +185,6 @@ function MasterCompanyDetailContent() {
   });
 
   const changeRoleMutation = useApiMutation({
-    errorMessage: 'Erro ao alterar papel do usuário',
     mutationFn: async (vars: { userId: number; role: 'GERENTE' | 'FUNCIONARIO' }) => {
       const res = await api.patch<ApiEnvelope<Employee>>(
         `/companies/${companyId}/users/${vars.userId}/role`,
@@ -194,11 +193,13 @@ function MasterCompanyDetailContent() {
       return res.data.data;
     },
     onError: (err) => {
-      // O filtro de erro do back aninha a mensagem em response.response.message
-      const nested = (err as any)?.response?.data?.response?.message;
-      if (typeof nested === 'string' && nested.includes('gerente ativo')) {
+      const axiosErr = err as { response?: { status?: number } };
+      if (axiosErr?.response?.status === 409) {
         toast.error('Esta empresa já possui um gerente ativo — rebaixe-o primeiro.');
+      } else {
+        toast.error('Não foi possível alterar o papel. Tente novamente.');
       }
+      return true;
     },
     onSuccess: (_, vars) => {
       const label = vars.role === 'GERENTE' ? 'promovido a Gerente' : 'rebaixado a Funcionário';
