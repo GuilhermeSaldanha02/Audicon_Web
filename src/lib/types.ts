@@ -64,6 +64,9 @@ export type Employee = {
   id: number;
   nome: string;
   email: string;
+  /** R-17: papel do usuário na empresa (retornado por GET /companies/:id/users desde R-15). */
+  role: 'GERENTE' | 'FUNCIONARIO';
+  deletedAt?: string | null;
 };
 
 export type CreatedEmployeeResult = {

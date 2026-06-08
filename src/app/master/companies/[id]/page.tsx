@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Building2, Hash, Calendar, Users,
   Mail, RotateCcw, AlertCircle, Copy, Plus, Trash2, AlertTriangle, Pencil,
+  ShieldCheck, UserCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { api, ApiEnvelope } from '@/lib/api';
 import { useApiMutation } from '@/hooks/use-api-mutation';
 import { Company, Employee, CreatedEmployeeResult, Condominium } from '@/lib/types';
+
+type RoleTarget = { user: Employee; nextRole: 'GERENTE' | 'FUNCIONARIO' };
 import { AppShell } from '@/components/app-shell';
 import { RequireAuth } from '@/components/require-auth';
 
@@ -60,8 +63,7 @@ function MasterCompanyDetailContent() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [condoOpen, setCondoOpen] = useState(false);
-  const [assignTarget, setAssignTarget] = useState<Condominium | null>(null);
-  const [assignEmail, setAssignEmail] = useState('');
+  const [roleTarget, setRoleTarget] = useState<RoleTarget | null>(null);
   const [successResult, setSuccessResult] = useState<
     (CreatedEmployeeResult & { nome: string; title: string }) | null
   >(null);
@@ -182,18 +184,28 @@ function MasterCompanyDetailContent() {
     },
   });
 
-  const assignAdminMutation = useApiMutation({
-    errorMessage: 'Erro ao atribuir administrador',
-    mutationFn: async (vars: { condominiumId: number; email: string }) => {
-      await api.post(`/condominiums/${vars.condominiumId}/members`, {
-        email: vars.email,
-        role: 'ADMIN',
-      });
+  const changeRoleMutation = useApiMutation({
+    mutationFn: async (vars: { userId: number; role: 'GERENTE' | 'FUNCIONARIO' }) => {
+      const res = await api.patch<ApiEnvelope<Employee>>(
+        `/companies/${companyId}/users/${vars.userId}/role`,
+        { role: vars.role },
+      );
+      return res.data.data;
     },
-    onSuccess: () => {
-      toast.success('Administrador atribuído');
-      setAssignTarget(null);
-      setAssignEmail('');
+    onError: (err) => {
+      const axiosErr = err as { response?: { status?: number } };
+      if (axiosErr?.response?.status === 409) {
+        toast.error('Esta empresa já possui um gerente ativo — rebaixe-o primeiro.');
+      } else {
+        toast.error('Não foi possível alterar o papel. Tente novamente.');
+      }
+      return true;
+    },
+    onSuccess: (_, vars) => {
+      const label = vars.role === 'GERENTE' ? 'promovido a Gerente' : 'rebaixado a Funcionário';
+      toast.success(`Usuário ${label} com sucesso`);
+      setRoleTarget(null);
+      queryClient.invalidateQueries({ queryKey: ['master-company-users', companyId] });
     },
   });
 
@@ -332,45 +344,83 @@ function MasterCompanyDetailContent() {
             </div>
           )}
 
-          {users && users.length > 0 && (
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
-                    <tr>
-                      <th className="px-5 py-3 text-left">Nome</th>
-                      <th className="px-5 py-3 text-left">E-mail</th>
-                      <th className="px-5 py-3 text-right">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((u) => (
-                      <tr key={u.id} className="border-t border-border/50 hover:bg-muted/20 transition-colors">
-                        <td className="px-5 py-3 font-medium text-foreground">{u.nome}</td>
-                        <td className="px-5 py-3">
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Mail className="h-3.5 w-3.5" />{u.email}
-                          </div>
-                        </td>
-                        <td className="px-5 py-3 text-right">
-                          <Button
-                            size="sm" variant="outline"
-                            onClick={() => setResetTarget(u)}
-                            className="gap-1.5 cursor-pointer"
-                          >
-                            <RotateCcw className="h-3.5 w-3.5" /> Resetar senha
-                          </Button>
-                        </td>
+          {users && users.length > 0 && (() => {
+            const hasActiveGerente = users.some((u) => u.role === 'GERENTE');
+            return (
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
+                      <tr>
+                        <th className="px-5 py-3 text-left">Nome</th>
+                        <th className="px-5 py-3 text-left">E-mail</th>
+                        <th className="px-5 py-3 text-right">Ações</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {users.map((u) => (
+                        <tr key={u.id} className="border-t border-border/50 hover:bg-muted/20 transition-colors">
+                          <td className="px-5 py-3 font-medium text-foreground">
+                            <div className="flex items-center gap-2">
+                              {u.nome}
+                              {u.role === 'GERENTE' ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-amber-300">
+                                  <ShieldCheck className="h-3 w-3" /> Gerente
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                                  <UserCheck className="h-3 w-3" /> Funcionário
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-5 py-3">
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Mail className="h-3.5 w-3.5" />{u.email}
+                            </div>
+                          </td>
+                          <td className="px-5 py-3 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {u.role === 'FUNCIONARIO' ? (
+                                <span title={hasActiveGerente ? 'Rebaixe o gerente atual primeiro' : undefined}>
+                                  <Button
+                                    size="sm" variant="outline"
+                                    disabled={hasActiveGerente}
+                                    onClick={() => setRoleTarget({ user: u, nextRole: 'GERENTE' })}
+                                    className="gap-1.5 cursor-pointer"
+                                  >
+                                    <ShieldCheck className="h-3.5 w-3.5" /> Promover
+                                  </Button>
+                                </span>
+                              ) : (
+                                <Button
+                                  size="sm" variant="outline"
+                                  onClick={() => setRoleTarget({ user: u, nextRole: 'FUNCIONARIO' })}
+                                  className="gap-1.5 cursor-pointer text-amber-700 hover:bg-amber-50 hover:text-amber-800"
+                                >
+                                  <UserCheck className="h-3.5 w-3.5" /> Rebaixar
+                                </Button>
+                              )}
+                              <Button
+                                size="sm" variant="outline"
+                                onClick={() => setResetTarget(u)}
+                                className="gap-1.5 cursor-pointer"
+                              >
+                                <RotateCcw className="h-3.5 w-3.5" /> Resetar senha
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-5 py-3 border-t border-border/50 text-xs text-muted-foreground">
+                  {users.length} usuário(s)
+                </div>
               </div>
-              <div className="px-5 py-3 border-t border-border/50 text-xs text-muted-foreground">
-                {users.length} usuário(s)
-              </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
 
         {/* Condomínios */}
@@ -435,7 +485,6 @@ function MasterCompanyDetailContent() {
                     <tr>
                       <th className="px-5 py-3 text-left">Nome</th>
                       <th className="px-5 py-3 text-left">CNPJ</th>
-                      <th className="px-5 py-3 text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -444,15 +493,6 @@ function MasterCompanyDetailContent() {
                         <td className="px-5 py-3 font-medium text-foreground">{c.name}</td>
                         <td className="px-5 py-3 text-muted-foreground">
                           <span className="flex items-center gap-1.5"><Hash className="h-3.5 w-3.5" />{c.cnpj}</span>
-                        </td>
-                        <td className="px-5 py-3 text-right">
-                          <Button
-                            size="sm" variant="outline"
-                            onClick={() => { setAssignTarget(c); setAssignEmail(''); }}
-                            className="gap-1.5 cursor-pointer"
-                          >
-                            <Users className="h-3.5 w-3.5" /> Atribuir admin
-                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -494,48 +534,46 @@ function MasterCompanyDetailContent() {
         </DialogContent>
       </Dialog>
 
-      {/* Assign admin to condominium */}
-      <Dialog open={!!assignTarget} onOpenChange={(o) => !o && setAssignTarget(null)}>
+      {/* Confirm role change */}
+      <Dialog open={!!roleTarget} onOpenChange={(o) => !o && setRoleTarget(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Atribuir administrador</DialogTitle></DialogHeader>
-          {assignTarget && (
+          <DialogHeader>
+            <DialogTitle>
+              {roleTarget?.nextRole === 'GERENTE' ? 'Promover a Gerente' : 'Rebaixar a Funcionário'}
+            </DialogTitle>
+          </DialogHeader>
+          {roleTarget && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Selecione um usuário da empresa para administrar{' '}
-                <strong className="text-foreground">{assignTarget.name}</strong>.
+                {roleTarget.nextRole === 'GERENTE'
+                  ? 'O usuário passará a ter acesso de gerente nesta empresa.'
+                  : 'O usuário perderá o acesso de gerente e voltará a ser funcionário.'}
               </p>
-              {(!users || users.length === 0) ? (
-                <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
-                  <AlertCircle className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
-                  <p className="text-xs text-amber-700">
-                    Nenhum usuário cadastrado. Crie um usuário para a empresa antes de atribuir.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  <Label>Usuário</Label>
-                  <select
-                    value={assignEmail}
-                    onChange={(e) => setAssignEmail(e.target.value)}
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm cursor-pointer"
-                  >
-                    <option value="">Selecione um usuário...</option>
-                    {users.map((u) => (
-                      <option key={u.id} value={u.email}>{u.nome} — {u.email}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <div className="rounded-lg border border-border bg-muted/50 px-4 py-3">
+                <p className="font-medium text-foreground">{roleTarget.user.nome}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{roleTarget.user.email}</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-xs text-amber-700">
+                  Esta ação altera o nível de acesso do usuário imediatamente.
+                </p>
+              </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setAssignTarget(null)} disabled={assignAdminMutation.isPending} className="cursor-pointer">
+                <Button
+                  variant="outline"
+                  onClick={() => setRoleTarget(null)}
+                  disabled={changeRoleMutation.isPending}
+                  className="cursor-pointer"
+                >
                   Cancelar
                 </Button>
                 <Button
-                  onClick={() => assignAdminMutation.mutate({ condominiumId: assignTarget.id, email: assignEmail })}
-                  disabled={assignAdminMutation.isPending || !assignEmail}
+                  onClick={() => changeRoleMutation.mutate({ userId: roleTarget.user.id, role: roleTarget.nextRole })}
+                  disabled={changeRoleMutation.isPending}
                   className="cursor-pointer"
                 >
-                  {assignAdminMutation.isPending ? 'Atribuindo...' : 'Atribuir'}
+                  {changeRoleMutation.isPending ? 'Salvando...' : 'Confirmar'}
                 </Button>
               </div>
             </div>
