@@ -4,23 +4,19 @@ import type { NextRequest } from 'next/server';
 /**
  * Middleware de proteção de rotas (server-side, edge runtime).
  *
- * Estratégia: verifica APENAS a PRESENÇA do cookie `access_token` (httpOnly,
- * gerado pelo back-end no login — R-08). NÃO decodifica nem valida o JWT, pois:
- *   1. A secret não está disponível no edge.
- *   2. Validar aqui anularia o benefício do httpOnly (exposição a timing attacks
- *      no edge vs. validação isolada no back-end).
+ * Em desenvolvimento (same-origin): verifica a presença do cookie `access_token`
+ * (httpOnly, gerado pelo back-end no login — R-08). Sem cookie → redireciona para
+ * /login.
  *
- * A validação real do token ocorre no back-end a cada request autenticado.
- * O <RequireAuth> continua como segunda camada client-side (verificação de
- * papel/claims) — este middleware não o substitui.
- *
- * Fluxo:
- *   - Rotas públicas (whitelist) → passa direto.
- *   - Demais rotas sem cookie → redireciona para /login.
- *   - Demais rotas com cookie → passa para renderização normal.
+ * Em produção (cross-origin: Vercel + Railway): o cookie é setado pelo domínio da
+ * API (*.up.railway.app) e NÃO é enviado ao edge da Vercel — o middleware nunca o
+ * enxerga. A proteção real vem do back-end (valida JWT a cada request) e do
+ * <RequireAuth> (redirect client-side se /auth/profile retornar 401).
  */
 
 const PUBLIC_PATHS = ['/login'];
+
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -30,12 +26,16 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Verifica apenas a presença do cookie access_token.
+  // Em produção cross-origin o cookie não chega ao edge — delega ao <RequireAuth>.
+  if (IS_PRODUCTION) {
+    return NextResponse.next();
+  }
+
+  // Verifica apenas a presença do cookie access_token (dev, same-origin).
   const hasToken = Boolean(request.cookies.get('access_token'));
 
   if (!hasToken) {
     const loginUrl = new URL('/login', request.url);
-    // Preserva a rota de origem para redirect pós-login (opcional, útil para UX).
     loginUrl.searchParams.set('from', pathname);
     return NextResponse.redirect(loginUrl);
   }
